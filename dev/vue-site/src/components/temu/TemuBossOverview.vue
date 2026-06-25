@@ -4,12 +4,14 @@ import { summarizeTemuByStore, summarizeTemuProducts } from '@/utils/temuStore'
 import { formatMoney } from '@/utils/format'
 import { resolveStoreAssignee } from '@/utils/storeAssignment'
 import AssigneeTag from '@/components/common/AssigneeTag.vue'
+import TemuSalesTrend from '@/components/temu/TemuSalesTrend.vue'
 
 const props = defineProps({
   products: { type: Array, required: true },
   stores: { type: Array, default: () => [] },
   assigneeMap: { type: Object, default: () => ({}) },
   showStoreList: { type: Boolean, default: true },
+  salesTrend: { type: Object, default: () => ({ labels: [], values: [] }) },
 })
 
 const emit = defineEmits(['navigate'])
@@ -78,6 +80,12 @@ function storeAlerts(summary) {
         <span>{{ item.label }}</span>
       </button>
     </div>
+
+    <TemuSalesTrend
+      v-if="salesTrend.labels?.length"
+      :labels="salesTrend.labels"
+      :values="salesTrend.values"
+    />
 
     <el-table
       v-if="showStoreList && storeSummaries.length"

@@ -1,17 +1,25 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { formatPercent } from '@/utils/format'
 import { RESTOCK_CONFIG } from '@/constants/temu'
+import { appendHotBroadcast } from '@/utils/temuHotBroadcast'
 
 const props = defineProps({
   products: { type: Array, required: true },
   broadcasts: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['broadcast'])
+const emit = defineEmits(['broadcast', 'update:broadcasts'])
 
 const localBroadcasts = ref([...props.broadcasts])
+
+watch(
+  () => props.broadcasts,
+  (next) => {
+    localBroadcasts.value = [...next]
+  },
+)
 
 const hotProducts = computed(() =>
   [...props.products]
@@ -37,8 +45,9 @@ function sendBroadcast(product) {
     operator: '系统',
     readBy: [],
   }
-  localBroadcasts.value.unshift(entry)
+  localBroadcasts.value = appendHotBroadcast(entry)
   emit('broadcast', entry)
+  emit('update:broadcasts', localBroadcasts.value)
   ElMessage.success(`已全公司通报：${product.name}`)
 }
 </script>
@@ -117,7 +126,7 @@ function sendBroadcast(product) {
           <el-descriptions :column="1" size="small" border>
             <el-descriptions-item label="当日销量">≥ {{ RESTOCK_CONFIG.hotMinDailySales }} 件</el-descriptions-item>
             <el-descriptions-item label="增幅阈值">当日 / 7 日均 ≥ {{ RESTOCK_CONFIG.hotSurgeRatio }}×</el-descriptions-item>
-            <el-descriptions-item label="通报范围">全公司员工可见</el-descriptions-item>
+            <el-descriptions-item label="通报范围">全公司员工可见（localStorage 持久化）</el-descriptions-item>
           </el-descriptions>
         </el-card>
       </el-col>

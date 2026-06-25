@@ -10,6 +10,10 @@ import {
   saveCompetitor,
 } from '@/api/temuCompetitors'
 
+defineProps({
+  useBackendData: { type: Boolean, default: false },
+})
+
 const loading = ref(false)
 const analyzing = ref(false)
 const competitors = ref([])
@@ -134,6 +138,16 @@ onMounted(async () => {
 
 <template>
   <div class="competitor-analysis">
+    <el-alert
+      v-if="useBackendData"
+      type="info"
+      :closable="false"
+      show-icon
+      title="竞店爬取尚未接入本项目 Python 爬虫"
+      description="当前竞店分析仍使用本地 Demo 数据；可在 backend/python 扩展竞店爬虫后，由 Java API 统一对外提供。"
+      style="margin-bottom: 16px"
+    />
+
     <el-card shadow="never" class="settings-card">
       <template #header>
         <div class="settings-head">

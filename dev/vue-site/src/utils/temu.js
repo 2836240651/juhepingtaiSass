@@ -109,7 +109,9 @@ export function enrichTemuProduct(raw) {
   const hot = isHotProduct(raw.dailySales, avg7DayDaily)
   const listingStatus = raw.listingStatus === 'offline' ? 'offline' : 'online'
   const listingMeta = LISTING_STATUS[listingStatus]
-  const platformIds = TEMU_PLATFORM_IDS[raw.sku] || {}
+  const platformIds = raw.spuId
+    ? { spuId: raw.spuId, skcId: raw.skcId || '', skuId: raw.skuId || '' }
+    : (TEMU_PLATFORM_IDS[raw.sku] || {})
 
   return {
     ...raw,

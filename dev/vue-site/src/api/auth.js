@@ -4,6 +4,17 @@ import {
   loginLocalBoss,
   registerLocalUser,
 } from './authLocal'
+import { isTemuBackendEnabled } from './config'
+import { backendLogin } from './request'
+
+async function loginViaBackend(account, password, portalRole) {
+  if (!isTemuBackendEnabled()) return null
+  try {
+    return await backendLogin(account, password, portalRole)
+  } catch {
+    return null
+  }
+}
 
 export function registerCompany(payload) {
   const result = registerLocalUser(payload)
@@ -11,13 +22,37 @@ export function registerCompany(payload) {
   return result
 }
 
-export function loginBoss(payload) {
-  const result = loginLocalBoss(payload)
+export async function loginBoss(payload) {
+  const account = String(payload.account || '').trim()
+  const password = String(payload.password || '')
+
+  const backend = await loginViaBackend(account, password, 'boss')
+  if (backend) {
+    return {
+      success: true,
+      data: {
+        company: backend.company || backend.nickname || '企业',
+        account: backend.account || account,
+        backendLinked: true,
+        backendUserId: backend.user_id,
+        backendRole: backend.role,
+      },
+    }
+  }
+
+  const result = loginLocalBoss({ account, password })
   if (result.error) throw new Error(result.error)
-  return result
+  return {
+    success: true,
+    data: {
+      company: result.data.company,
+      account: result.data.account,
+      backendLinked: false,
+    },
+  }
 }
 
-export function loginEmployee({ account, password }) {
+export async function loginEmployee({ account, password }) {
   ensureDefaultUser()
   const acc = String(account || '').trim().toLowerCase()
   const pwd = String(password || '')
@@ -28,6 +63,9 @@ export function loginEmployee({ account, password }) {
   if (!employee) {
     throw new Error('员工账号或密码错误，请联系管理员在员工绑定中添加')
   }
+
+  const backend = await loginViaBackend(account, password, 'employee')
+
   return {
     success: true,
     data: {
@@ -37,6 +75,9 @@ export function loginEmployee({ account, password }) {
       role: employee.role,
       platforms: employee.platforms,
       assignedStoreIds: employee.assignedStoreIds || [],
+      backendLinked: Boolean(backend),
+      backendUserId: backend?.user_id || null,
+      backendRole: backend?.role || '',
     },
   }
 }

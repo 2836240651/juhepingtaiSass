@@ -35,6 +35,8 @@ const filtered = computed(() => {
         <el-table-column v-if="showStoreColumn" prop="storeName" label="所属店铺" width="130" show-overflow-tooltip />
         <AssigneeTableColumn />
         <el-table-column prop="sku" label="SKU" width="110" fixed />
+        <el-table-column prop="spuId" label="SPU" width="120" show-overflow-tooltip />
+        <el-table-column prop="skcId" label="SKC" width="120" show-overflow-tooltip />
         <el-table-column prop="name" label="商品名称" min-width="180" show-overflow-tooltip />
         <el-table-column label="售价" width="90" align="right">
           <template #default="{ row }">{{ formatMoneyDecimal(row.sellingPrice) }}</template>

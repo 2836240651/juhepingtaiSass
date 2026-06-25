@@ -1,0 +1,18 @@
+server:
+  port: 18080
+
+crosshub:
+  jwt-secret: crosshub-dev-secret-change-in-production
+  db-path: ${CROSSHUB_DB_PATH:../data/crosshub.db}
+
+spring:
+  datasource:
+    url: jdbc:sqlite:${crosshub.db-path}
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  jackson:
+    property-naming-strategy: SNAKE_CASE
