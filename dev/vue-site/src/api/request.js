@@ -80,3 +80,8 @@ export async function backendLogin(account, password, portalRole) {
   setAccessToken(token)
   return data
 }
+
+export async function fetchBackendSession() {
+  const res = await service.get('/api/auth/session', { skipGlobalErrorToast: true })
+  return res?.data ?? res
+}

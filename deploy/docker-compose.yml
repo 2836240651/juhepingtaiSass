@@ -1,0 +1,22 @@
+services:
+  crosshub-java:
+    image: crosshub-java:latest
+    container_name: crosshub-java
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:18080"
+    volumes:
+      - /data/crosshub/data:/data
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CROSSHUB_DB_PATH: /data/crosshub.db
+      CROSSHUB_JWT_SECRET: crosshub-prod-jwt-secret-must-be-at-least-32-bytes
+
+  crosshub-express:
+    image: crosshub-express:latest
+    container_name: crosshub-express
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18081:18081"
+    environment:
+      PORT: "18081"

@@ -2,8 +2,6 @@ package com.crosshub.temu.service;
 
 import com.crosshub.temu.entity.TemuSale;
 import com.crosshub.temu.entity.TemuShop;
-import com.crosshub.temu.repository.TemuSaleRepository;
-import com.crosshub.temu.repository.TemuShopRepository;
 import com.crosshub.temu.security.AuthContext;
 import org.springframework.stereotype.Service;
 
@@ -12,46 +10,31 @@ import java.util.*;
 
 @Service
 public class TemuOperationalService {
-    private final TemuSaleRepository saleRepository;
-    private final TemuShopRepository shopRepository;
+    private final DataScopeService dataScopeService;
     private final TemuWarningService warningService;
     private final AuthContext authContext;
 
     public TemuOperationalService(
-            TemuSaleRepository saleRepository,
-            TemuShopRepository shopRepository,
+            DataScopeService dataScopeService,
             TemuWarningService warningService,
             AuthContext authContext
     ) {
-        this.saleRepository = saleRepository;
-        this.shopRepository = shopRepository;
+        this.dataScopeService = dataScopeService;
         this.warningService = warningService;
         this.authContext = authContext;
     }
 
     public String latestReportTime() {
-        String latest = saleRepository.findLatestReportTime();
+        String latest = dataScopeService.latestReportTime();
         return latest != null ? latest : LocalDate.now().toString();
     }
 
     public List<TemuShop> shops() {
-        return shopRepository.findAll();
+        return dataScopeService.scopedShops();
     }
 
     public List<TemuSale> scopedSales(String reportTime, String shopId) {
-        List<TemuSale> sales;
-        if (authContext.isAdmin()) {
-            sales = shopId == null || shopId.isBlank() || "all".equals(shopId)
-                    ? saleRepository.findByReportTime(reportTime)
-                    : saleRepository.findByReportTimeAndShopId(reportTime, shopId);
-        } else {
-            Long uid = authContext.userId();
-            if (uid == null) return List.of();
-            sales = shopId == null || shopId.isBlank() || "all".equals(shopId)
-                    ? saleRepository.findByReportTimeAndUserId(reportTime, uid)
-                    : saleRepository.findByReportTimeAndShopIdAndUserId(reportTime, shopId, uid);
-        }
-        return sales;
+        return dataScopeService.scopedSales(reportTime, shopId);
     }
 
     public Map<String, Object> operationalBundle(String shopId, String reportTime) {
@@ -77,6 +60,7 @@ public class TemuOperationalService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("code", 0);
         body.put("report_time", day);
+        body.put("tenant_id", authContext.tenantId());
         body.put("products", sales.stream().map(this::saleMap).toList());
         body.put("lose_products", loseProducts);
         body.put("low_warnings", lowWarnings);
@@ -114,6 +98,7 @@ public class TemuOperationalService {
         map.put("report_time", sale.getReportTime());
         map.put("shop_name", sale.getShopName());
         map.put("shop_id", sale.getShopId());
+        map.put("tenant_id", sale.getTenantId());
         map.put("user_id", sale.getUserId());
         map.put("cost", sale.getCost());
         map.put("category_name", sale.getCategoryName());

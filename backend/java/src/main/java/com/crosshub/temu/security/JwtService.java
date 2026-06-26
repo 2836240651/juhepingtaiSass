@@ -11,6 +11,8 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,15 +24,19 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createToken(AppUser user, String portalRole) {
+    public String createToken(AppUser user, String portalRole, List<String> platforms, List<String> shopScope) {
         Instant now = Instant.now();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("uid", user.getId());
+        claims.put("tid", user.getTenantId());
+        claims.put("role", user.getRole());
+        claims.put("portal_role", portalRole);
+        claims.put("username", user.getUsername());
+        claims.put("platforms", platforms == null ? List.of() : platforms);
+        claims.put("shop_scope", shopScope == null ? List.of() : shopScope);
+
         return Jwts.builder()
-                .claims(Map.of(
-                        "uid", user.getId(),
-                        "role", user.getRole(),
-                        "portal_role", portalRole,
-                        "username", user.getUsername()
-                ))
+                .claims(claims)
                 .subject(user.getUsername())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(ttlSeconds)))

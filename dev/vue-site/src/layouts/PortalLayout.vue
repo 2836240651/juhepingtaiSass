@@ -1,80 +1,14 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  Bell,
-  Briefcase,
-  DataAnalysis,
-  Goods,
-  Key,
-  Link,
-  Sell,
-  Shop,
-  ShoppingBag,
-  ShoppingCart,
-  SwitchButton,
-  Tickets,
-  TrendCharts,
-  UserFilled,
-  VideoCamera,
-  VideoPlay,
-} from '@element-plus/icons-vue'
+import { Bell, SwitchButton } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import { employeeModuleMenus } from '@/utils/scope'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const bossMenus = [
-  { index: '/boss/employees', label: '员工绑定', icon: UserFilled },
-  { index: '/boss/dashboard', label: '运营总览', icon: TrendCharts },
-  { index: '/boss/tasks', label: '任务分配', icon: Tickets },
-  { index: '/boss/temu', label: 'Temu 运营', icon: Shop },
-  { index: '/boss/aliexpress', label: 'AliExpress 运营', icon: Goods },
-  { index: '/boss/amazon', label: 'Amazon 运营', icon: Sell },
-  { index: '/boss/walmart', label: 'Walmart 运营', icon: ShoppingBag },
-  { index: '/boss/pdd', label: '拼多多运营', icon: ShoppingCart },
-  { index: '/boss/douyin', label: '抖音运营', icon: VideoCamera },
-  { index: '/boss/channels', label: '视频号运营', icon: VideoPlay },
-  { index: '/boss/1688', label: '1688 运营', icon: ShoppingCart },
-  { index: '/boss/dtc', label: '独立站运营', icon: Link },
-  { index: '/boss/accounts', label: '账户绑定', icon: Key },
-]
-
-const employeeBaseMenus = [
-  { index: '/employee/dashboard', label: '我的工作台', icon: TrendCharts },
-  { index: '/employee/tasks', label: '任务中心', icon: Briefcase },
-  { index: '/employee/ai', label: 'AI 办公', icon: DataAnalysis },
-]
-
-const platformMenuIcons = {
-  temu: Shop,
-  aliexpress: Goods,
-  amazon: Sell,
-  walmart: ShoppingBag,
-  pdd: ShoppingCart,
-  douyin: VideoCamera,
-  channels: VideoPlay,
-  '1688': ShoppingCart,
-  shopify: Link,
-  wordpress: Link,
-}
-
-const menus = computed(() => {
-  if (auth.isBoss) return bossMenus
-
-  const platformMenus = employeeModuleMenus(auth).map((item) => ({
-    ...item,
-    icon: platformMenuIcons[item.platform] || Shop,
-  }))
-
-  return [
-    employeeBaseMenus[0],
-    ...platformMenus,
-    ...employeeBaseMenus.slice(1),
-  ]
-})
+const menus = computed(() => auth.sidebarMenus)
 
 const activeMenu = computed(() => route.path)
 const pageTitle = computed(() => route.meta.title || 'CrossHub')

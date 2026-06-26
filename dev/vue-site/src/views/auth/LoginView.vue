@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import { ArrowRight, Lock, User, UserFilled } from '@element-plus/icons-vue'
 import { loginBoss, loginEmployee } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
+import { defaultLandingPath } from '@/utils/menuAuth'
 import AuthSplitLayout from '@/components/auth/AuthSplitLayout.vue'
 import { useYotoMascot } from '@/composables/useYotoMascot'
 
@@ -113,7 +114,7 @@ async function handleLogin() {
       })
       auth.setCompany(res.data)
       auth.login('boss')
-      router.push('/boss/employees')
+      router.push(defaultLandingPath(auth))
     } else {
       const res = await loginEmployee({
         account: account.value.trim(),
@@ -121,7 +122,7 @@ async function handleLogin() {
       })
       auth.setEmployee(res.data)
       auth.login('employee')
-      router.push('/employee/dashboard')
+      router.push(defaultLandingPath(auth))
     }
   } catch (err) {
     ElMessage.error(err.message || '登录失败')

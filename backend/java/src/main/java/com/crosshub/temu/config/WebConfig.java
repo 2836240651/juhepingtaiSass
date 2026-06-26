@@ -25,6 +25,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtAuthInterceptor)
-                .addPathPatterns("/api/temu/**");
+                .addPathPatterns("/api/temu/**", "/api/auth/menus", "/api/auth/session", "/api/tenant/**");
     }
 }

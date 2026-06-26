@@ -9,17 +9,74 @@ DATA_DIR = ROOT / "data"
 DB_PATH = DATA_DIR / "crosshub.db"
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS tenant (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'active'
+);
+
 CREATE TABLE IF NOT EXISTS app_user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER,
   username TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
   nickname TEXT NOT NULL DEFAULT '',
   enterprise TEXT NOT NULL DEFAULT '',
-  role TEXT NOT NULL DEFAULT 'user'
+  job_title TEXT NOT NULL DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'user',
+  phone TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS sys_menu (
+  code TEXT PRIMARY KEY,
+  parent_code TEXT,
+  portal TEXT NOT NULL,
+  platform TEXT,
+  path TEXT NOT NULL,
+  label TEXT NOT NULL,
+  menu_type TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS tenant_feature (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  feature_code TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (tenant_id, feature_code)
+);
+
+CREATE TABLE IF NOT EXISTS user_platform_scope (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  platform TEXT NOT NULL,
+  UNIQUE (tenant_id, user_id, platform)
+);
+
+CREATE TABLE IF NOT EXISTS user_shop_scope (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  platform TEXT NOT NULL,
+  shop_id TEXT NOT NULL,
+  UNIQUE (tenant_id, user_id, platform, shop_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_menu_grant (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  menu_code TEXT NOT NULL,
+  UNIQUE (tenant_id, user_id, menu_code)
 );
 
 CREATE TABLE IF NOT EXISTS temu_shop (
   shop_id TEXT PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
   shop_name TEXT NOT NULL,
   is_upload INTEGER NOT NULL DEFAULT 0
 );
@@ -31,6 +88,7 @@ CREATE TABLE IF NOT EXISTS temu_sale (
   report_time TEXT NOT NULL,
   shop_name TEXT NOT NULL,
   shop_id TEXT NOT NULL,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
   user_id INTEGER NOT NULL DEFAULT 1,
   cost INTEGER NOT NULL DEFAULT 0,
   category_name TEXT NOT NULL DEFAULT '',
@@ -67,6 +125,10 @@ def init_schema(conn: sqlite3.Connection) -> None:
 
 
 def seed_users(conn: sqlite3.Connection) -> None:
+    conn.execute("""
+        INSERT OR IGNORE INTO tenant (id, name, code, status)
+        VALUES (1, '泰州亿拓户外用品有限公司', 'yituo-outdoor', 'active')
+    """)
     users = [
         ("admin@crosshub.cn", "12345678", "管理员", "泰州亿拓户外用品有限公司", "admin"),
         ("wangyiming@yituo-outdoor.com", "Emp@Demo123", "王一鸣", "泰州亿拓户外用品有限公司", "user"),
@@ -75,9 +137,9 @@ def seed_users(conn: sqlite3.Connection) -> None:
     for username, password, nickname, enterprise, role in users:
         conn.execute(
             """
-            INSERT OR IGNORE INTO app_user (username, password, nickname, enterprise, role)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO app_user (username, password, nickname, enterprise, role, tenant_id, job_title)
+            VALUES (?, ?, ?, ?, ?, 1, ?)
             """,
-            (username, password, nickname, enterprise, role),
+            (username, password, nickname, enterprise, role, nickname),
         )
     conn.commit()

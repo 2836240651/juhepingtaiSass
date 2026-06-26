@@ -1,0 +1,7 @@
+{
+  "name": "crosshub-scripts",
+  "private": true,
+  "dependencies": {
+    "ssh2": "^1.16.0"
+  }
+}

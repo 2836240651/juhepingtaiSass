@@ -17,6 +17,8 @@ public class TemuSale {
     private String shopName;
     @Column(name = "shop_id")
     private String shopId;
+    @Column(name = "tenant_id")
+    private Long tenantId;
     @Column(name = "user_id")
     private Long userId;
     private Integer cost;
@@ -53,6 +55,8 @@ public class TemuSale {
     public String getReportTime() { return reportTime; }
     public String getShopName() { return shopName; }
     public String getShopId() { return shopId; }
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
     public Long getUserId() { return userId; }
     public Integer getCost() { return cost; }
     public String getCategoryName() { return categoryName; }

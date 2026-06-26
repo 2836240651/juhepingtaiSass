@@ -8,17 +8,12 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface TemuSaleRepository extends JpaRepository<TemuSale, Long> {
-    @Query("SELECT MAX(s.reportTime) FROM TemuSale s")
-    String findLatestReportTime();
+    @Query("SELECT MAX(s.reportTime) FROM TemuSale s WHERE s.tenantId = :tenantId")
+    String findLatestReportTimeByTenantId(@Param("tenantId") Long tenantId);
 
-    List<TemuSale> findByReportTime(String reportTime);
+    List<TemuSale> findByTenantIdAndReportTime(Long tenantId, String reportTime);
 
-    List<TemuSale> findByReportTimeAndShopId(String reportTime, String shopId);
+    List<TemuSale> findByTenantIdAndReportTimeAndShopId(Long tenantId, String reportTime, String shopId);
 
-    List<TemuSale> findByReportTimeAndUserId(String reportTime, Long userId);
-
-    List<TemuSale> findByReportTimeAndShopIdAndUserId(String reportTime, String shopId, Long userId);
-
-    @Query("SELECT s FROM TemuSale s WHERE s.reportTime = :reportTime ORDER BY s.sonSalesSevenDays DESC")
-    List<TemuSale> findByReportTimeOrderBySevenDays(@Param("reportTime") String reportTime);
+    List<TemuSale> findByTenantIdAndReportTimeAndShopIdIn(Long tenantId, String reportTime, List<String> shopIds);
 }

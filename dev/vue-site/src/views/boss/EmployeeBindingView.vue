@@ -6,6 +6,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
 import {
   deleteEmployee,
+  fetchAssignableMenus,
   fetchEmployees,
   saveEmployee,
   toggleEmployeeStatus,
@@ -20,6 +21,7 @@ import {
 const loading = ref(false)
 const employees = ref([])
 const boundStores = ref([])
+const assignableMenus = ref([])
 const showForm = ref(false)
 
 const storeNameMap = computed(() =>
@@ -41,6 +43,7 @@ const emptyForm = () => ({
   role: '',
   platforms: [],
   assignedStoreIds: [],
+  menuCodes: [],
   status: true,
 })
 
@@ -49,12 +52,18 @@ const form = reactive(emptyForm())
 async function loadEmployees() {
   loading.value = true
   try {
-    const [empRes, storeRes] = await Promise.all([fetchEmployees(), fetchAllPlatformStores()])
+    const [empRes, storeRes, menuRes] = await Promise.all([
+      fetchEmployees(),
+      fetchAllPlatformStores(),
+      fetchAssignableMenus(),
+    ])
     employees.value = empRes.data || []
     boundStores.value = storeRes.data || []
+    assignableMenus.value = menuRes.data || []
   } catch {
     employees.value = []
     boundStores.value = []
+    assignableMenus.value = []
   } finally {
     loading.value = false
   }
@@ -75,6 +84,7 @@ function openEdit(row) {
     role: row.role,
     platforms: [...(row.platforms || [])],
     assignedStoreIds: [...(row.assignedStoreIds || [])],
+    menuCodes: [...(row.menuCodes || row.menu_codes || [])],
     status: row.status !== false,
   })
   showForm.value = true
@@ -118,6 +128,7 @@ async function submitForm() {
       role: form.role,
       platforms: form.platforms,
       assignedStoreIds: form.assignedStoreIds,
+      menuCodes: form.menuCodes,
       status: form.status,
     })
     ElMessage.success(form.id ? '员工信息已更新' : '员工绑定成功')
@@ -278,6 +289,29 @@ onMounted(loadEmployees)
               </el-text>
             </el-form-item>
           </el-col>
+          <el-col :xs="24">
+            <el-form-item label="菜单权限">
+              <el-select
+                v-model="form.menuCodes"
+                multiple
+                collapse-tags
+                collapse-tags-tooltip
+                :disabled="!assignableMenus.length"
+                :placeholder="assignableMenus.length ? '可选：精确指定员工可见菜单' : '连接后端后可分配菜单'"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="menu in assignableMenus"
+                  :key="menu.code"
+                  :label="menu.label"
+                  :value="menu.code"
+                />
+              </el-select>
+              <el-text size="small" type="info" tag="p" style="margin-top: 6px">
+                不选则按「负责平台」自动推导；选定后仅显示勾选的运营模块（工作台等基础菜单始终可见）
+              </el-text>
+            </el-form-item>
+          </el-col>
           <el-col :xs="24" :md="12">
             <el-form-item label="账号状态">
               <el-switch v-model="form.status" active-text="启用" inactive-text="停用" />
@@ -335,6 +369,22 @@ onMounted(loadEmployees)
               </el-tag>
             </el-space>
             <el-text v-else size="small" type="info">未分配店铺</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="菜单权限" min-width="160">
+          <template #default="{ row }">
+            <el-space v-if="row.menuCodes?.length" wrap :size="4">
+              <el-tag
+                v-for="code in row.menuCodes"
+                :key="code"
+                size="small"
+                type="warning"
+                effect="plain"
+              >
+                {{ assignableMenus.find((m) => m.code === code)?.label || code }}
+              </el-tag>
+            </el-space>
+            <el-text v-else size="small" type="info">按平台推导</el-text>
           </template>
         </el-table-column>
         <el-table-column prop="account" label="登录账号" min-width="180" show-overflow-tooltip />

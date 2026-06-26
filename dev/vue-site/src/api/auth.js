@@ -1,11 +1,24 @@
-import { fetchLocalEmployees } from './employeesLocal'
+import { isTemuBackendEnabled } from './config'
+import { backendLogin } from './request'
 import {
   ensureDefaultUser,
   loginLocalBoss,
   registerLocalUser,
 } from './authLocal'
-import { isTemuBackendEnabled } from './config'
-import { backendLogin } from './request'
+import { fetchLocalEmployees } from './employeesLocal'
+
+function mapBackendSession(backend) {
+  if (!backend) return {}
+  return {
+    backendLinked: true,
+    backendUserId: backend.user_id,
+    backendRole: backend.role,
+    tenant_id: backend.tenant_id,
+    menus: backend.menus || [],
+    platforms: backend.platforms || [],
+    shop_scope: backend.shop_scope || [],
+  }
+}
 
 async function loginViaBackend(account, password, portalRole) {
   if (!isTemuBackendEnabled()) return null
@@ -33,9 +46,7 @@ export async function loginBoss(payload) {
       data: {
         company: backend.company || backend.nickname || '企业',
         account: backend.account || account,
-        backendLinked: true,
-        backendUserId: backend.user_id,
-        backendRole: backend.role,
+        ...mapBackendSession(backend),
       },
     }
   }
@@ -48,11 +59,35 @@ export async function loginBoss(payload) {
       company: result.data.company,
       account: result.data.account,
       backendLinked: false,
+      menus: [],
+      platforms: [],
+      shop_scope: [],
     },
   }
 }
 
 export async function loginEmployee({ account, password }) {
+  const backend = await loginViaBackend(account, password, 'employee')
+  if (backend) {
+    return {
+      success: true,
+      data: {
+        id: backend.user_id,
+        name: backend.nickname || backend.account || account,
+        account: backend.account || account,
+        role: backend.job_title || backend.role || '',
+        platforms: backend.platforms || [],
+        assignedStoreIds: backend.shop_scope || [],
+        backendLinked: true,
+        backendUserId: backend.user_id || null,
+        backendRole: backend.role || '',
+        tenant_id: backend.tenant_id || null,
+        menus: backend.menus || [],
+        shop_scope: backend.shop_scope || [],
+      },
+    }
+  }
+
   ensureDefaultUser()
   const acc = String(account || '').trim().toLowerCase()
   const pwd = String(password || '')
@@ -64,8 +99,6 @@ export async function loginEmployee({ account, password }) {
     throw new Error('员工账号或密码错误，请联系管理员在员工绑定中添加')
   }
 
-  const backend = await loginViaBackend(account, password, 'employee')
-
   return {
     success: true,
     data: {
@@ -75,9 +108,12 @@ export async function loginEmployee({ account, password }) {
       role: employee.role,
       platforms: employee.platforms,
       assignedStoreIds: employee.assignedStoreIds || [],
-      backendLinked: Boolean(backend),
-      backendUserId: backend?.user_id || null,
-      backendRole: backend?.role || '',
+      backendLinked: false,
+      backendUserId: null,
+      backendRole: '',
+      tenant_id: null,
+      menus: [],
+      shop_scope: [],
     },
   }
 }

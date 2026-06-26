@@ -47,6 +47,7 @@ def map_sales_batches(
                         "report_time": report_time,
                         "shop_name": shop_name,
                         "shop_id": shop_id,
+                        "tenant_id": 1,
                         "user_id": user_id,
                         "cost": 0,
                         "category_name": order.get("category") or "",

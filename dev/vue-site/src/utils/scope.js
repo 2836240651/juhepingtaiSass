@@ -2,12 +2,18 @@
 export function scopeStores(stores = [], auth) {
   if (!auth || auth.isBoss) return stores
 
-  const assigned = auth.employee?.assignedStoreIds || []
+  const assigned = auth.backendLinked
+    ? (auth.shopScope || [])
+    : (auth.employee?.assignedStoreIds || [])
   if (assigned.length) {
     return stores.filter((store) => assigned.includes(store.id))
   }
 
-  const platforms = new Set(auth.employee?.platforms || [])
+  const platforms = new Set(
+    auth.backendLinked
+      ? (auth.platforms || [])
+      : (auth.employee?.platforms || []),
+  )
   if (!platforms.size) return []
 
   return stores.filter((store) => platforms.has(store.platform))
@@ -20,13 +26,18 @@ export function scopeStoreIds(stores, auth) {
 export function employeeHasPlatform(auth, platform) {
   if (!auth || auth.isBoss) return true
   const key = String(platform || '').toLowerCase()
-  return (auth.employee?.platforms || []).includes(key)
+  const list = auth.backendLinked
+    ? (auth.platforms || [])
+    : (auth.employee?.platforms || [])
+  return list.includes(key)
 }
 
 export function employeeModuleMenus(auth) {
   if (!auth || auth.isBoss) return []
 
-  const platforms = auth.employee?.platforms || []
+  const platforms = auth.backendLinked
+    ? (auth.platforms || [])
+    : (auth.employee?.platforms || [])
   const menus = []
   const seen = new Set()
 

@@ -12,6 +12,7 @@ COLUMNS = [
     "report_time",
     "shop_name",
     "shop_id",
+    "tenant_id",
     "user_id",
     "cost",
     "category_name",
@@ -37,11 +38,12 @@ def upsert_shops(conn: sqlite3.Connection, shops: list[dict]) -> None:
     for shop in shops:
         conn.execute(
             """
-            INSERT INTO temu_shop (shop_id, shop_name, is_upload)
-            VALUES (?, ?, ?)
+            INSERT INTO temu_shop (shop_id, tenant_id, shop_name, is_upload)
+            VALUES (?, 1, ?, ?)
             ON CONFLICT(shop_id) DO UPDATE SET
               shop_name = excluded.shop_name,
-              is_upload = excluded.is_upload
+              is_upload = excluded.is_upload,
+              tenant_id = excluded.tenant_id
             """,
             (
                 shop["shop_id"],

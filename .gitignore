@@ -27,3 +27,7 @@ coverage/
 __screenshots__/
 *.local
 .eslintcache
+
+# Deploy build artifacts & local SSH probes (may contain credentials)
+deploy/.build/
+scripts/_ssh-probe/
