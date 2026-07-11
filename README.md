@@ -24,16 +24,70 @@
 | **仓库协同** | 分仓设置、出库单审批、仓管任务中心 |
 | **任务分配** | Boss 向运营/仓管分配任务，反馈时间线同步 |
 
-### 平台联调状态
+---
 
-| 平台 | 后端 API | 真实爬取/同步 | 说明 |
-|------|----------|---------------|------|
-| Temu | ✅ Java | ✅ Python Playwright | 完整闭环 |
-| AliExpress | ✅ Java | ✅ Python | 订单、违规、热榜 |
-| Amazon | ✅ Java | ⚙️ Agent + 紫鸟 | 同步助手节点 |
-| 仓库/租户/账户 | ✅ Java | — | 生产可用 |
-| Walmart / 1688 / DTC / 国内 | 前端 Demo | 模拟刷新 | localStorage 演示层 |
-| 任务分配 | 前端 Demo | — | 待 Java 持久化 |
+## 已开发爬虫的三大平台
+
+当前已完成 **Python 爬虫 / 同步引擎 + Java 读 API + Vue 刷新闭环** 的平台共三个。统一数据流：
+
+```
+浏览器 / 紫鸟 WebDriver / Agent
+    ↓ 爬取 / 同步
+backend/data/crosshub.db（SQLite，按 tenant_id 隔离）
+    ↓ JPA 读取
+Java API (:18080)
+    ↓ Vite 代理
+Vue 运营模块（刷新 → 异步任务 → 轮询 → 重载）
+```
+
+### 1. Temu（Playwright 卖家后台）
+
+| 项 | 说明 |
+|----|------|
+| **爬虫引擎** | Playwright 持久化 Profile + 卖家后台 API（`temu_crawler.py`） |
+| **登录** | `py login.py --tenant-id <id>`，Profile：`.temu-browser-profile/tenant-{id}` |
+| **爬取入口** | `py crawl.py --tenant-id <id>` 或统一入口 `operational_crawl.py --platform temu` |
+| **Java API** | `POST /api/temu/crawl`、`GET /api/temu/operational`、`GET /api/temu/trend` |
+| **抓取内容** | 全托管销量、四类运营预警（价损/滞销/补货/热卖）、销量趋势 |
+| **扩展能力** | 竞店监控（`competitor_crawl.py` + `/api/monitor`）、热榜播报、备货跟进 |
+| **前端入口** | Boss / 员工 → **Temu 运营** → 刷新数据 |
+
+### 2. AliExpress（Playwright 全托管 CSP）
+
+| 项 | 说明 |
+|----|------|
+| **爬虫引擎** | Playwright + CSP 卖家后台 API（`aliexpress_crawler.py`） |
+| **登录** | `py login_aliexpress.py --tenant-id <id>`，Profile：`.aliexpress-browser-profile/tenant-{id}` |
+| **爬取入口** | `operational_crawl.py --platform aliexpress --scope all\|orders\|violations\|operational` |
+| **Java API** | `POST /api/aliexpress/crawl`、`GET /api/aliexpress/operational/orders/violations/hot-broadcasts` |
+| **抓取内容** | JIT 订单、仓发备货单、违规处罚、商品运营数据、热卖播报 |
+| **前端入口** | Boss / 员工 → **AliExpress 运营** → 刷新数据 / 刷新违规 |
+
+### 3. Amazon（紫鸟 WebDriver + 本地 Agent）
+
+| 项 | 说明 |
+|----|------|
+| **爬虫引擎** | 紫鸟隔离浏览器 + Playwright CDP（`app/amazon/report_crawler.py`） |
+| **运行方式** | 办公机安装紫鸟 WebDriver + CrossHub **同步助手 Agent**（`scripts/run-agent.ps1`） |
+| **触发链路** | 前端刷新 → `POST /api/amazon/sync` → Java 下发 Agent 任务 → Agent 调紫鸟爬取 → 入库 |
+| **Java API** | `POST /api/amazon/sync`、`GET /api/amazon/daily/insights`、`POST /api/amazon/ziniao/bind` |
+| **抓取 scope** | 账户状况、订单、消息、评论、优惠券、FBA 入库、Business Report、广告、库存等 |
+| **前置条件** | 紫鸟 Boss 账号、WebDriver 端口、Agent Token（Boss → Amazon 同步助手） |
+| **前端入口** | Boss / 员工 → **Amazon 运营** → 刷新；Boss → **Amazon 同步助手** 管理节点 |
+
+> **说明**：Temu / AliExpress 由 Java 直接 fork Python 脚本；Amazon 因账号隔离依赖紫鸟，必须通过 **Agent 长连接** 在本地 Windows 执行，云端 Java 仅调度任务与读库。
+
+### 平台联调状态（其余模块）
+
+| 平台 / 模块 | 后端 API | 爬虫/同步 | 说明 |
+|-------------|----------|-----------|------|
+| **Temu** | ✅ | ✅ Playwright | 完整闭环 + 竞店监控 |
+| **AliExpress** | ✅ | ✅ Playwright | 订单 / 违规 / 热榜 |
+| **Amazon** | ✅ | ✅ Agent + 紫鸟 | 需本地 Agent 在线 |
+| 仓库 / 租户 / 账户 | ✅ | — | 生产可用 |
+| Walmart / 1688 / DTC / 国内 | 前端 Demo | 模拟刷新 | 待 Phase 3 扩展 |
+| 竞店监控（跨平台框架） | ✅ `/api/monitor` | ✅ Temu adapter | 框架就绪，待扩平台 |
+| 任务分配 | ✅ Java | — | 已持久化 |
 
 ---
 
@@ -121,24 +175,111 @@ VITE_USE_TEMU_BACKEND=true
 
 ---
 
-## Temu 爬虫（可选）
+## 爬虫快速上手（三大平台）
+
+### 公共准备
 
 ```powershell
 cd backend\python
 py -m pip install -r requirements.txt
 py -m playwright install chrome
 copy .env.example .env
-
-# 首次登录（按租户隔离浏览器 Profile）
-py login.py --tenant-id 1
-
-# 爬取入库
-py crawl.py --tenant-id 1
-# 或无浏览器种子数据
-powershell -File ..\..\scripts\crawl-tenant.ps1 -TenantId 1 -Seed
 ```
 
-前端 Temu 模块点击 **刷新数据** → `POST /api/temu/crawl` → Java 调 Python → 轮询任务状态 → 重载运营数据。
+### Temu
+
+```powershell
+py login.py --tenant-id 1
+py crawl.py --tenant-id 1
+# 或统一入口
+py operational_crawl.py --platform temu --tenant-id 1
+```
+
+### AliExpress
+
+```powershell
+py login_aliexpress.py --tenant-id 1
+py operational_crawl.py --platform aliexpress --tenant-id 1 --scope all
+```
+
+### Amazon（Agent + 紫鸟）
+
+1. Boss 端绑定紫鸟店铺（**Amazon 同步助手**）
+2. 办公机启动紫鸟 WebDriver + Agent：
+
+```powershell
+powershell -File scripts\run-agent.ps1
+```
+
+3. 前端 Amazon 模块点击 **刷新** → 轮询 `GET /api/amazon/sync/{jobId}`
+
+---
+
+## 后续扩展蓝图
+
+原则：**先稳住 Temu / AliExpress / Amazon 三平台生产闭环 → 复用爬虫任务模式横向扩展 → 工程化与权限硬化**。
+
+### Phase 2 — 三平台产品化（进行中）
+
+| 方向 | 内容 |
+|------|------|
+| Temu | 爬取 UX（409 并发提示、登录指引）、任务历史 UI、生产 Docker 挂载 Python Profile |
+| AliExpress | 运营读接口与前端 `aliexpressApi.js` 全量对齐、违规申诉回写 |
+| Amazon | 日报 MVP 七类资源补全、Business Report / 消息 scope、运营总览接真实 API |
+| 竞店监控 | Temu adapter 稳定后，框架复用到 Amazon / Walmart / TikTok Shop |
+
+### Phase 3 — 下一批真平台（按优先级）
+
+每个新平台遵循同一模板：**Python adapter 或官方 API → SQLite 入库 → Java `/api/{platform}` → Vue `*Api.js` → 租户隔离**。
+
+| 优先级 | 平台 | 建议路线 | 前端现状 |
+|--------|------|----------|----------|
+| P1 | **Walmart** | 订单 + Listing 问题双 Tab 爬虫 | Demo 模块已有 |
+| P2 | **1688** | 采购/供货单对接（偏 B2B） | Demo 模块已有 |
+| P3 | **TikTok Shop** | 订单 + 库存 API 或 Playwright | 菜单预留 |
+| P4 | **Shopify / WordPress** | 独立站 Webhook / REST | DTC Demo 模块 |
+| P5 | **拼多多 / 抖音 / 视频号** | 国内平台 adapter（共用 `useDomesticModule`） | Demo 模块已有 |
+
+### Phase 4 — 工程化与上线硬化
+
+| 方向 | 内容 |
+|------|------|
+| 安全 | 密码 BCrypt、JWT 生产密钥环境变量、Demo 数据门禁 |
+| 测试 | Java `@SpringBootTest` + crawl mock；前端 Vitest smoke |
+| CI | PR 门禁：`mvn test` + `npm run build` + Python 单元测试 |
+| 运维 | 监控 Worker 容器化（`deploy/Dockerfile.python-worker`）、Profile 备份策略 |
+| 权限 | 完成 `docs/permissions/` 菜单与数据范围对齐清单 |
+
+### 架构演进方向
+
+```mermaid
+flowchart LR
+  subgraph now [当前]
+    T[Temu Playwright]
+    A[AliExpress Playwright]
+    Z[Amazon Agent+紫鸟]
+  end
+  subgraph next [Phase 3+]
+    W[Walmart]
+    S[Shopify/DTC]
+    D[国内电商]
+  end
+  subgraph core [共用内核]
+    J[Java API + JWT tid]
+    DB[(SQLite crosshub.db)]
+    M[Monitor 通用框架]
+  end
+  T --> DB
+  A --> DB
+  Z --> DB
+  W --> M
+  S --> M
+  D --> M
+  DB --> J
+  J --> V[Vue 三门户]
+```
+
+详细 PRD 与测试用例见 `docs/开发顺序.md`、`docs/temu-crawl/`、`docs/amazon-integration/`、`docs/competitor-monitor/`。
 
 ---
 
