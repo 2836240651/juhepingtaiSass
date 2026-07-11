@@ -1,3 +1,4 @@
+﻿import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   ALIEXPRESS_HOT_BROADCASTS,
   ALIEXPRESS_OPERATOR,
@@ -7,17 +8,13 @@ import {
 
 const STORAGE_KEY = 'crosshub_aliexpress_demo'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { products: [], broadcasts: [] }
-  } catch {
-    return { products: [], broadcasts: [] }
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, { products: [], broadcasts: [] })
+    || { products: [], broadcasts: [] }
 }
 
-function saveAll(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function saveAll(data, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, data)
 }
 
 function hashStoreId(id) {
@@ -84,7 +81,7 @@ function seedDefaults(data) {
   return next
 }
 
-/** 为当前已绑定的 AliExpress 店铺注入 / 补齐 Demo 运营数据 */
+/** 涓哄綋鍓嶅凡缁戝畾鐨?AliExpress 搴楅摵娉ㄥ叆 / 琛ラ綈 Demo 杩愯惀鏁版嵁 */
 export function ensureAliexpressDemoData(stores = []) {
   let data = seedDefaults(loadAll())
   const boundIds = new Set(stores.map((store) => store.id))
@@ -119,3 +116,4 @@ export function fetchAliexpressDemoData(stores = []) {
     },
   }
 }
+

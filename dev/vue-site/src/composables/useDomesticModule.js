@@ -6,6 +6,7 @@ import { scopeStores } from '@/utils/scope'
 import { useStoreAssignees } from '@/composables/useStoreAssignees'
 import { enrichDomesticIssue } from '@/utils/domesticPlatform'
 import { domesticPlatformLabel } from '@/constants/platforms'
+import { isPlatformOperationalDemoOnly, platformOperationalHint } from '@/utils/platformOperationalMode'
 import { pushPlatformOrderToWarehouse, enrichOrdersWithWarehouseFeedback } from '@/api/platformShipRequests'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
@@ -38,6 +39,8 @@ export function useDomesticModule(config) {
 
   const platformKey = config.platformKey || ''
   const platformLabel = computed(() => domesticPlatformLabel(platformKey) || platformKey)
+  const operationalDemoOnly = computed(() => isPlatformOperationalDemoOnly(platformKey))
+  const operationalHint = computed(() => platformOperationalHint(platformKey))
 
   const storeNameMap = computed(() =>
     Object.fromEntries(stores.value.map((store) => [store.id, store.storeName])),
@@ -75,7 +78,7 @@ export function useDomesticModule(config) {
   )
 
   async function syncTodayOrders(refresh = false) {
-    if (!stores.value.length) {
+    if (operationalDemoOnly.value || !stores.value.length) {
       todayOrders.value = []
       ordersSyncedAt.value = ''
       return
@@ -95,7 +98,7 @@ export function useDomesticModule(config) {
   }
 
   async function syncIssues(refresh = false) {
-    if (!stores.value.length) {
+    if (operationalDemoOnly.value || !stores.value.length) {
       issues.value = []
       issuesSyncedAt.value = ''
       return
@@ -247,6 +250,8 @@ export function useDomesticModule(config) {
     shipSubmitting,
     platformKey,
     platformLabel,
+    operationalDemoOnly,
+    operationalHint,
     config,
   }
 }

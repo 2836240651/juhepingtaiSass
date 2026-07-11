@@ -1,16 +1,36 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
 import { RESTOCK_CONFIG } from '@/constants/temu'
+import { TEMU_RESTOCK_STATUS_LABELS } from '@/constants/temuOps'
+import {
+  loadTemuRestockStatusMap,
+  resolveTemuRestockStatus,
+  restockStatusKey,
+  saveTemuRestockStatus,
+} from '@/api/temuRestock'
 import AssigneeTableColumn from '@/components/common/AssigneeTableColumn.vue'
+import TableQueryBar from '@/components/common/TableQueryBar.vue'
+import { useFuzzySearchPagination } from '@/composables/useFuzzySearchPagination'
 
 const props = defineProps({
   products: { type: Array, required: true },
   showStoreColumn: { type: Boolean, default: false },
+  useBackendData: { type: Boolean, default: false },
 })
 
+const auth = useAuthStore()
 const urgencyFilter = ref('all')
+const restockStatusMap = ref({})
+const savingKey = ref('')
 
-const filtered = computed(() => {
+const statusOptions = Object.entries(TEMU_RESTOCK_STATUS_LABELS).map(([value, meta]) => ({
+  value,
+  label: meta.label,
+}))
+
+const urgencyFiltered = computed(() => {
   let list = [...props.products].sort((a, b) => a.restock.coverDays - b.restock.coverDays)
   if (urgencyFilter.value === 'urgent') {
     list = list.filter((p) => p.restock.urgency === 'critical' || p.restock.urgency === 'warning')
@@ -19,9 +39,17 @@ const filtered = computed(() => {
   return list
 })
 
+const { keyword, page, pageSize, total, paged } = useFuzzySearchPagination(urgencyFiltered, {
+  fields: ['sku', 'name', 'storeName'],
+})
+
 const totalSuggest = computed(() =>
-  filtered.value.reduce((s, p) => s + p.restock.suggestedRestock, 0),
+  urgencyFiltered.value.reduce((s, p) => s + p.restock.suggestedRestock, 0),
 )
+
+onMounted(async () => {
+  restockStatusMap.value = await loadTemuRestockStatusMap(auth)
+})
 
 function urgencyTag(row) {
   const map = {
@@ -31,6 +59,52 @@ function urgencyTag(row) {
     normal: { type: 'success', label: '正常' },
   }
   return map[row.restock.urgency] || map.normal
+}
+
+function trackedStatus(row) {
+  return resolveTemuRestockStatus(restockStatusMap.value, row)?.status || 'pending'
+}
+
+function trackedNote(row) {
+  const tracked = resolveTemuRestockStatus(restockStatusMap.value, row)
+  if (tracked?.note) return tracked.note
+  if (row.restock.suggestedRestock > 0) {
+    return `建议补货 ${row.restock.suggestedRestock} 件`
+  }
+  return ''
+}
+
+function statusMeta(row) {
+  const status = trackedStatus(row)
+  return TEMU_RESTOCK_STATUS_LABELS[status] || TEMU_RESTOCK_STATUS_LABELS.pending
+}
+
+async function onStatusChange(row, status) {
+  const key = restockStatusKey(row.storeId, row.sku)
+  savingKey.value = key
+  const note = trackedNote(row)
+  try {
+    await saveTemuRestockStatus(
+      {
+        shopId: row.storeId,
+        sku: row.sku,
+        status,
+        note,
+      },
+      auth,
+    )
+    const entry = { status, note }
+    restockStatusMap.value = {
+      ...restockStatusMap.value,
+      [key]: entry,
+      [row.sku]: entry,
+    }
+    ElMessage.success('备货跟进状态已更新')
+  } catch (err) {
+    ElMessage.error(err.message || '更新失败')
+  } finally {
+    savingKey.value = ''
+  }
 }
 </script>
 
@@ -90,22 +164,39 @@ function urgencyTag(row) {
         <el-table-column label="目标库存" width="100" align="right">
           <template #default="{ row }">{{ row.restock.targetStock }}</template>
         </el-table-column>
-        <el-table-column label="建议备货" width="110" align="right" fixed="right">
+        <el-table-column label="建议备货" width="110" align="right">
           <template #default="{ row }">
             <strong>{{ row.restock.suggestedRestock }}</strong>
           </template>
         </el-table-column>
-        <el-table-column label="紧急度" width="110" fixed="right">
+        <el-table-column label="紧急度" width="110">
           <template #default="{ row }">
             <el-tag :type="urgencyTag(row).type" size="small">{{ urgencyTag(row).label }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="备注" width="130" fixed="right">
+        <el-table-column label="跟进状态" width="130" fixed="right">
           <template #default="{ row }">
-            <el-text v-if="row.restock.shortfall > 0" type="danger" size="small">
+            <el-select
+              :model-value="trackedStatus(row)"
+              size="small"
+              :loading="savingKey === restockStatusKey(row.storeId, row.sku)"
+              @change="onStatusChange(row, $event)"
+            >
+              <el-option
+                v-for="item in statusOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-text v-if="trackedNote(row)" size="small">{{ trackedNote(row) }}</el-text>
+            <el-text v-else-if="row.restock.shortfall > 0" type="danger" size="small">
               本地缺 {{ row.restock.shortfall }}
             </el-text>
-            <el-text v-else-if="row.isHot" type="success" size="small">爆款优先</el-text>
             <el-text v-else type="info" size="small">—</el-text>
           </template>
         </el-table-column>
@@ -115,26 +206,34 @@ function urgencyTag(row) {
     <el-row :gutter="16" style="margin-top: 16px">
       <el-col :xs="24" :lg="12">
         <el-card shadow="never">
-          <template #header>参数配置（Demo）</template>
+          <template #header>{{ useBackendData ? '参数配置' : '参数配置（Demo）' }}</template>
           <el-descriptions :column="2" border size="small">
             <el-descriptions-item label="安全库存天数">{{ RESTOCK_CONFIG.safetyDays }} 天</el-descriptions-item>
             <el-descriptions-item label="目标覆盖">{{ RESTOCK_CONFIG.targetCoverDays }} 天</el-descriptions-item>
             <el-descriptions-item label="备货提前期">{{ RESTOCK_CONFIG.leadTimeDays }} 天</el-descriptions-item>
             <el-descriptions-item label="补货来源">本地仓库</el-descriptions-item>
           </el-descriptions>
+          <el-text v-if="useBackendData" type="info" size="small" style="display: block; margin-top: 12px">
+            跟进状态已同步至服务端，运营总览与任务中心可读。
+          </el-text>
         </el-card>
       </el-col>
       <el-col :xs="24" :lg="12">
         <el-card shadow="never">
           <template #header>优先补货清单</template>
           <el-table
-            :data="filtered.filter((p) => p.restock.suggestedRestock > 0).slice(0, 5)"
+            :data="urgencyFiltered.filter((p) => p.restock.suggestedRestock > 0).slice(0, 5)"
             size="small"
           >
             <el-table-column prop="name" label="商品" show-overflow-tooltip />
             <AssigneeTableColumn width="90" />
             <el-table-column label="建议量" width="90" align="right">
               <template #default="{ row }">{{ row.restock.suggestedRestock }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="88">
+              <template #default="{ row }">
+                <el-tag :type="statusMeta(row).type" size="small">{{ statusMeta(row).label }}</el-tag>
+              </template>
             </el-table-column>
             <el-table-column label="原因" min-width="120">
               <template #default="{ row }">

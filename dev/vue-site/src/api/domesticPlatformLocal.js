@@ -1,4 +1,5 @@
 import { DOMESTIC_ORDER_STATUSES } from '@/constants/domesticShared'
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10)
@@ -34,16 +35,13 @@ export function createDomesticOrdersLocal(config) {
   } = config
 
   function loadState() {
-    try {
-      const raw = localStorage.getItem(storageKey)
-      return raw ? JSON.parse(raw) : { date: '', syncedAt: '', items: [] }
-    } catch {
-      return { date: '', syncedAt: '', items: [] }
-    }
+    const tenantId = resolveTenantId()
+    return loadScoped(tenantId, storageKey, { date: '', syncedAt: '', items: [] })
+      || { date: '', syncedAt: '', items: [] }
   }
 
   function saveState(state) {
-    localStorage.setItem(storageKey, JSON.stringify(state))
+    saveScoped(resolveTenantId(), storageKey, state)
   }
 
   function normalizeSeedOrders() {
@@ -149,16 +147,13 @@ export function createDomesticIssuesLocal(config) {
   const { storageKey, seedIssues, refreshMessage } = config
 
   function loadState() {
-    try {
-      const raw = localStorage.getItem(storageKey)
-      return raw ? JSON.parse(raw) : { syncedAt: '', items: [] }
-    } catch {
-      return { syncedAt: '', items: [] }
-    }
+    const tenantId = resolveTenantId()
+    return loadScoped(tenantId, storageKey, { syncedAt: '', items: [] })
+      || { syncedAt: '', items: [] }
   }
 
   function saveState(state) {
-    localStorage.setItem(storageKey, JSON.stringify(state))
+    saveScoped(resolveTenantId(), storageKey, state)
   }
 
   function ensureIssuesForStores(stores) {

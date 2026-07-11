@@ -42,7 +42,6 @@ function runSkill(prompt) {
         </div>
       </div>
       <div class="ai-hero__meta">
-        <el-tag size="small" effect="plain" type="info">Demo</el-tag>
         <span class="ai-hero__model">
           <el-icon><Lightning /></el-icon>
           Copilot

@@ -2,6 +2,7 @@ import { ensureAliexpressDemoData } from './aliexpressDemoLocal'
 import { ensureAmazonDailyData } from './amazonDailyLocal'
 import { ensureDtcDemoData } from './dtcDemoLocal'
 import { isDtcPlatform } from '@/constants/platforms'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
 const STORAGE_KEY = 'crosshub_platform_accounts'
 const REMOVED_DEMO_IDS_KEY = 'crosshub_removed_demo_store_ids'
@@ -167,51 +168,41 @@ function normalizePlatform(platform) {
   return String(platform || '').trim().toLowerCase()
 }
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, []) || []
 }
 
-function saveAll(stores) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stores))
+function saveAll(stores, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, stores)
 }
 
 function createId() {
   return `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-function loadRemovedDemoIds() {
-  try {
-    const raw = localStorage.getItem(REMOVED_DEMO_IDS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadRemovedDemoIds(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, REMOVED_DEMO_IDS_KEY, []) || []
 }
 
-function markDemoStoreRemoved(id) {
-  const removed = loadRemovedDemoIds()
+function markDemoStoreRemoved(id, tenantId = resolveTenantId()) {
+  const removed = loadRemovedDemoIds(tenantId)
   if (!removed.includes(id)) {
-    removed.push(id)
-    localStorage.setItem(REMOVED_DEMO_IDS_KEY, JSON.stringify(removed))
+    saveScoped(tenantId, REMOVED_DEMO_IDS_KEY, [...removed, id])
   }
 }
 
 /** 初始化 Demo 店铺；用户主动解除的 Demo 店铺不会再次写入 */
-export function ensureDemoStores() {
-  const existing = loadAll()
-  const removedIds = new Set(loadRemovedDemoIds())
+export function ensureDemoStores(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  const existing = loadAll(tenantId)
+  const removedIds = new Set(loadRemovedDemoIds(tenantId))
   const demoById = Object.fromEntries(DEMO_STORES.map((s) => [s.id, s]))
   const custom = existing.filter((s) => !demoById[s.id])
   const activeDemos = DEMO_STORES.filter((s) => !removedIds.has(s.id)).map((s) => {
     const current = existing.find((row) => row.id === s.id)
     return current ? { ...current } : { ...s }
   })
-  saveAll([...custom, ...activeDemos])
+  saveAll([...custom, ...activeDemos], tenantId)
 }
 
 function validateStoreInput({ platform, storeName, account, password, id, stores }) {

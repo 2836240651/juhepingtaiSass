@@ -1,5 +1,5 @@
-import { isTemuBackendEnabled } from './config'
-import { getAccessToken, service } from './request'
+import { hasBackendSession } from './backendSession'
+import { service } from './request'
 import {
   deleteLocalWarehouseSite,
   fetchLocalWarehouseSites,
@@ -26,26 +26,20 @@ function toSitePayload(payload) {
     code: payload.code,
     address: payload.address || '',
     status: payload.status !== false,
-    sortOrder: payload.sortOrder ?? 0,
+    sort_order: payload.sortOrder ?? 0,
   }
 }
 
 export function canUseWarehouseSitesBackend(auth) {
-  if (!isTemuBackendEnabled()) return false
-  if (!getAccessToken() || !auth?.backendLinked) return false
-  return auth.isBoss
+  return hasBackendSession(auth) && auth.isBoss
 }
 
 export async function fetchWarehouseSites(auth, { activeOnly = false } = {}) {
   if (canUseWarehouseSitesBackend(auth)) {
-    try {
-      const res = await service.get('/api/warehouse/sites', {
-        params: { activeOnly },
-      })
-      return { success: true, data: (res?.data || []).map(mapSite) }
-    } catch {
-      /* fallback */
-    }
+    const res = await service.get('/api/warehouse/sites', {
+      params: { activeOnly },
+    })
+    return { success: true, data: (res?.data || []).map(mapSite) }
   }
   return fetchLocalWarehouseSites({ activeOnly })
 }

@@ -13,6 +13,7 @@ const props = defineProps({
   storeNameMap: { type: Object, default: () => ({}) },
 })
 
+const emit = defineEmits(['refresh'])
 
 const filter = ref('alert')
 const summary = computed(() => summarizeShipments(props.shipments))
@@ -38,6 +39,9 @@ function statusMeta(row) {
       title="货件到货"
       description="跟踪 FBA 货件：送达、缺件、显示完成但无库存等情况均需预警"
       :synced-at="syncedAt"
+      action-label="刷新今日数据"
+      :loading="loading"
+      @action="emit('refresh')"
     />
 
     <div class="mini-stats">

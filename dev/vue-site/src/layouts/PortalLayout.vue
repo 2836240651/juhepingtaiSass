@@ -1,14 +1,22 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Bell, SwitchButton } from '@element-plus/icons-vue'
+import { Bell, Menu, SwitchButton } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import WarehouseScopePanel from '@/components/warehouse/WarehouseScopePanel.vue'
+import PlatformSyncLogPanel from '@/components/common/PlatformSyncLogPanel.vue'
 import { settingsMenuOpenKeys } from '@/utils/menuAuth'
+import { usePlatformSyncStore } from '@/stores/platformSync'
+
+const MOBILE_BREAKPOINT = 768
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const syncStore = usePlatformSyncStore()
+
+const isMobile = ref(false)
+const mobileMenuOpen = ref(false)
 
 const menus = computed(() => auth.sidebarMenus)
 
@@ -51,11 +59,51 @@ function handleLogout() {
 function handleUserCommand(command) {
   if (command === 'logout') handleLogout()
 }
+
+function syncMobileLayout() {
+  isMobile.value = window.innerWidth < MOBILE_BREAKPOINT
+  if (!isMobile.value) mobileMenuOpen.value = false
+}
+
+function openMobileMenu() {
+  mobileMenuOpen.value = true
+}
+
+function closeMobileMenu() {
+  mobileMenuOpen.value = false
+}
+
+onMounted(() => {
+  syncMobileLayout()
+  window.addEventListener('resize', syncMobileLayout)
+  if (syncStore.shouldAutoSync(auth)) {
+    void syncStore.runAutoSyncOnLogin(auth)
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncMobileLayout)
+})
+
+watch(() => route.path, () => {
+  closeMobileMenu()
+})
 </script>
 
 <template>
-  <el-container class="portal">
-    <el-aside width="220px" class="portal-aside">
+  <el-container class="portal" :class="{ 'portal--mobile-menu-open': mobileMenuOpen }">
+    <div
+      v-if="isMobile && mobileMenuOpen"
+      class="portal-overlay"
+      aria-hidden="true"
+      @click="closeMobileMenu"
+    />
+
+    <el-aside
+      width="220px"
+      class="portal-aside"
+      :class="{ 'portal-aside--drawer': isMobile, 'portal-aside--open': mobileMenuOpen }"
+    >
       <div class="brand">
         <div class="brand-mark">CH</div>
         <div class="brand-text">
@@ -94,6 +142,8 @@ function handleUserCommand(command) {
           </el-menu-item>
         </template>
       </el-menu>
+
+      <PlatformSyncLogPanel v-if="!auth.isWarehouse" />
 
       <div class="aside-footer">
         <el-dropdown
@@ -149,7 +199,15 @@ function handleUserCommand(command) {
 
     <el-container class="portal-body">
       <el-header class="portal-header">
-        <div class="header-title">
+        <div class="header-leading">
+          <el-button
+            v-if="isMobile"
+            class="menu-toggle"
+            :icon="Menu"
+            circle
+            @click="openMobileMenu"
+          />
+          <div class="header-title">
           <p class="header-eyebrow">
             <template v-if="auth.isWarehouse">
               <WarehouseScopePanel variant="inline" />
@@ -157,6 +215,7 @@ function handleUserCommand(command) {
             <template v-else>{{ auth.portalLabel }}</template>
           </p>
           <h2>{{ pageTitle }}</h2>
+          </div>
         </div>
         <div class="header-actions">
           <el-button :icon="Bell" circle class="icon-btn" />
@@ -427,6 +486,7 @@ function handleUserCommand(command) {
 
 .header-eyebrow {
   display: none;
+  margin: 0;
 }
 
 .portal-header h2 {
@@ -472,6 +532,70 @@ function handleUserCommand(command) {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.header-leading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.menu-toggle {
+  flex-shrink: 0;
+}
+
+.portal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1999;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+@media (max-width: 767px) {
+  .portal-aside--drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 2000;
+    width: min(280px, 86vw) !important;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: var(--ch-shadow-lg);
+  }
+
+  .portal-aside--drawer.portal-aside--open {
+    transform: translateX(0);
+  }
+
+  .portal-header {
+    padding: 0 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .portal-header h2 {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .portal-main-inner {
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .header-eyebrow {
+    display: block;
+    margin: 0 0 2px;
+    font-size: 11px;
+    color: var(--ch-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>
 

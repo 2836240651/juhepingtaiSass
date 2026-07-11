@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Plus, Refresh } from '@element-plus/icons-vue'
+import { Delete, Edit, Plus, Refresh } from '@element-plus/icons-vue'
 import { deletePlatformStore, fetchAllPlatformStores } from '@/api/platformAccounts'
+import { formatCaughtError } from '@/utils/appErrorCode'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
 import BindStoreDialog from '@/components/accounts/BindStoreDialog.vue'
+import ZiniaoImportDialog from '@/components/accounts/ZiniaoImportDialog.vue'
 
 const PLATFORM_META = {
   temu: { label: 'Temu', type: 'warning' },
@@ -38,6 +40,12 @@ const allStores = ref([])
 const activePlatform = ref('all')
 const bindDialogVisible = ref(false)
 const bindDefaultPlatform = ref('temu')
+const editingStore = ref(null)
+const ziniaoDialogVisible = ref(false)
+
+const showZiniaoImport = computed(
+  () => activePlatform.value === 'amazon' || activePlatform.value === 'all',
+)
 
 const platformCounts = computed(() => {
   const counts = {}
@@ -61,8 +69,18 @@ function platformTagType(platform) {
 }
 
 function openBindDialog(platform = 'temu') {
+  editingStore.value = null
   bindDefaultPlatform.value = platform === 'all' ? 'temu' : platform
   bindDialogVisible.value = true
+}
+
+function openEditDialog(row) {
+  editingStore.value = { ...row }
+  bindDialogVisible.value = true
+}
+
+function onBindDialogClosed() {
+  editingStore.value = null
 }
 
 async function loadStores() {
@@ -95,7 +113,7 @@ async function removeStore(row) {
     await loadStores()
     ElMessage.success('已解除绑定')
   } catch (err) {
-    ElMessage.error(err.message || '操作失败')
+    ElMessage.error(formatCaughtError(err, '操作失败'))
   } finally {
     loading.value = false
   }
@@ -113,6 +131,12 @@ onMounted(loadStores)
       >
         <template #actions>
           <el-button :icon="Refresh" :loading="loading" @click="loadStores">刷新</el-button>
+          <el-button
+            v-if="showZiniaoImport"
+            @click="ziniaoDialogVisible = true"
+          >
+            从紫鸟导入
+          </el-button>
           <el-button type="primary" :icon="Plus" @click="openBindDialog(activePlatform)">
             绑定店铺
           </el-button>
@@ -162,9 +186,20 @@ onMounted(loadStores)
         </el-table-column>
         <el-table-column prop="storeName" label="店铺名称" min-width="160" show-overflow-tooltip />
         <el-table-column prop="account" label="登录账号" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="boundAt" label="绑定时间" width="170" />
-        <el-table-column label="操作" width="80" align="center" fixed="right">
+        <el-table-column label="接入方式" width="100">
           <template #default="{ row }">
+            <el-tag v-if="row.integrationMode === 'ziniao'" size="small" type="success" effect="plain">
+              紫鸟
+            </el-tag>
+            <span v-else class="cell-muted">手动</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="boundAt" label="绑定时间" width="170" />
+        <el-table-column label="操作" width="140" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" :icon="Edit" @click="openEditDialog(row)">
+              编辑
+            </el-button>
             <el-button link type="danger" :icon="Delete" @click="removeStore(row)">
               解除
             </el-button>
@@ -182,8 +217,12 @@ onMounted(loadStores)
     <BindStoreDialog
       v-model:visible="bindDialogVisible"
       :default-platform="bindDefaultPlatform"
+      :edit-store="editingStore"
       @success="loadStores"
+      @update:visible="(open) => { if (!open) onBindDialogClosed() }"
     />
+
+    <ZiniaoImportDialog v-model="ziniaoDialogVisible" @bound="loadStores" />
   </PageScroll>
 </template>
 
@@ -246,5 +285,9 @@ onMounted(loadStores)
 
 .store-table {
   border-radius: 8px;
+}
+
+.cell-muted {
+  color: var(--el-text-color-placeholder);
 }
 </style>

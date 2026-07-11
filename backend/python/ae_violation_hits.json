@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://guide.aliexpress.com/v2/api/guide/all?biz=AE&url=https%3A%2F%2Fcsp.aliexpress.com%2Fm_apps%2Fperformance%2Fviolation%2Flist",
+    "method": "GET",
+    "post": "",
+    "api": null,
+    "totalCount": null,
+    "data_len": 0,
+    "sample": "{\"success\": true, \"message\": \"\", \"data\": []}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.merchant.menu.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783483354191&sign=4587067cb2131e975fbd5cd9c5176591&type=originaljson&api=mtop.csp.merchant.menu.get&v=1.0&dataType=json&data=%7B%22url%22%3A%22%2Fm_apps%2Fperformance%2Fviolation%2Flist%22%7D",
+    "method": "GET",
+    "post": "",
+    "api": "mtop.csp.merchant.menu.get",
+    "totalCount": null,
+    "data_len": 4,
+    "sample": "{\"api\": \"mtop.csp.merchant.menu.get\", \"data\": {\"module\": {\"buc\": \"CSP_GLOBAL\", \"currentMenuId\": \"Root-Home-productscsp-publishproductscsp\", \"footerMenu\": [], \"headMenu\": [], \"isGray\": true, \"languages\": [{\"code\": \"en_US\", \"icon\": \"\", \"name\": \"English\"}, {\"code\": \"zh_CN\", \"icon\": \"\", \"name\": \"简体中文\"}], \"leftMenu\": [{\"action\": \"current\", \"collect\": false, \"icon\": \"a-productcopying\", \"id\": \"Root-Home-global_ProductsMoveCencer\", \"level\": 2, \"link\": \"//gsp.aliexpress.com/m_apps/aepop-product-manage/distribution-center\", \"name\": \"铺货中心\", \"position\": \"left\", \"show\": false, \"type\": \"normal\"}, {\"action\":"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.seller.iopnotify.defence.pull/1.0/?jsv=2.7.2&appKey=30267743&t=1783483354191&sign=0e91014e6e52fc8f9ed18df0e1c03895&v=1.0&timeout=30000&H5Request=true&url=mtop.aliexpress.seller.iopnotify.defence.pull&api=mtop.aliexpress.seller.iopnotify.defence.pull&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22pageName%22%3A%22%2Fm_apps%2Fperformance%2Fviolation%2Flist%22%7D",
+    "method": "GET",
+    "post": "",
+    "api": "mtop.aliexpress.seller.iopnotify.defence.pull",
+    "totalCount": null,
+    "data_len": 2,
+    "sample": "{\"api\": \"mtop.aliexpress.seller.iopnotify.defence.pull\", \"data\": {\"errorCode\": 0, \"result\": {\"popupList\": []}}, \"ret\": [\"SUCCESS::调用成功\"], \"traceId\": \"2102f0c917834833552661797e5813\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.yoda.web.show.yoda/1.0/?jsv=2.7.2&appKey=12574478&t=1783483354191&sign=4587067cb2131e975fbd5cd9c5176591&type=originaljson&api=mtop.csp.yoda.web.show.yoda&v=1.0&dataType=json&data=%7B%22url%22%3A%22%2Fm_apps%2Fperformance%2Fviolation%2Flist%22%7D",
+    "method": "GET",
+    "post": "",
+    "api": "mtop.csp.yoda.web.show.yoda",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.csp.yoda.web.show.yoda\", \"data\": {\"result\": false}, \"ret\": [\"SUCCESS::调用成功\"], \"traceId\": \"2102f0c917834833552781798e5813\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.cco.intl.consultation.widget.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783483354191&sign=5cb6b63702dfd63277f0f86995e4cf48&type=originaljson&api=mtop.aliexpress.cco.intl.consultation.widget.get&v=1.0&dataType=json&data=%7B%22url%22%3A%22https%3A%2F%2Fcsp.aliexpress.com%2Fm_apps%2Fperformance%2Fviolation%2Flist%22%7D",
+    "method": "GET",
+    "post": "",
+    "api": "mtop.aliexpress.cco.intl.consultation.widget.get",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.aliexpress.cco.intl.consultation.widget.get\", \"data\": {\"retry\": false}, \"ret\": [\"SUCCESS::调用成功\"], \"v\": \"1.0\"}"
+  }
+]

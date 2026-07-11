@@ -1,3 +1,4 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   ALIEXPRESS_OPERATOR,
   ALIEXPRESS_VIOLATIONS_SEED,
@@ -6,17 +7,14 @@ import {
 
 const STORAGE_KEY = 'crosshub_aliexpress_violations'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { syncedAt: '', items: [] }
-  } catch {
-    return { syncedAt: '', items: [] }
-  }
+const EMPTY = { syncedAt: '', items: [] }
+
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, EMPTY) || { ...EMPTY }
 }
 
-function saveAll(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+function saveAll(state, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, state)
 }
 
 function nowText() {

@@ -1,4 +1,4 @@
-import { OPERATION_TASKS } from '@/constants/operations'
+import { demoPlanTasks } from '@/utils/operations'
 import { filterTasksForAuth } from '@/utils/operations'
 import { fetchAssignedTasksForCenter } from '@/api/assignedTasks'
 
@@ -464,13 +464,13 @@ function sortTasks(tasks) {
 }
 
 /** 合并运营预警任务与计划任务，供员工任务中心使用 */
-export function buildEmployeeTaskCenter(overview, auth, employees = []) {
+export async function buildEmployeeTaskCenter(overview, auth, employees = []) {
   const issueTasks = buildIssueTasksFromOverview(overview, auth)
   const planTasks = filterTasksForAuth(employees, auth).map((task) => ({
     ...task,
     source: task.source || 'plan',
   }))
-  const assignedTasks = fetchAssignedTasksForCenter(auth, employees)
+  const assignedTasks = await fetchAssignedTasksForCenter(auth, employees)
 
   const issueKeys = new Set(issueTasks.map((t) => `${t.platformKey}:${t.category}`))
   const filteredPlan = planTasks.filter((task) => {
@@ -515,15 +515,15 @@ export function groupEmployeeTasksByPlatform(tasks = []) {
 }
 
 /** 老板端：全平台预警 + 计划任务 + 管理员分配任务 */
-export function buildBossTaskCenter(overview, auth, employees = []) {
-  const bossAuth = { isBoss: true }
+export async function buildBossTaskCenter(overview, auth, employees = []) {
+  const bossAuth = { isBoss: true, backendLinked: auth?.backendLinked }
   const nameToId = Object.fromEntries(employees.map((emp) => [emp.name, emp.id]))
   const issueTasks = buildIssueTasksFromOverview(overview, bossAuth).map((task) => ({
     ...task,
     employeeId: nameToId[task.assignee] || '',
   }))
-  const planTasks = OPERATION_TASKS.map((task) => ({ ...task, source: 'plan' }))
-  const assignedTasks = fetchAssignedTasksForCenter(bossAuth, employees)
+  const planTasks = demoPlanTasks(auth).map((task) => ({ ...task, source: 'plan' }))
+  const assignedTasks = await fetchAssignedTasksForCenter(bossAuth, employees)
 
   const byId = new Map()
   for (const task of [...issueTasks, ...planTasks, ...assignedTasks]) {
@@ -533,7 +533,7 @@ export function buildBossTaskCenter(overview, auth, employees = []) {
 }
 
 /** Boss 使用全量任务；员工使用聚合任务 */
-export function buildTaskCenterForAuth(overview, auth, employees = []) {
+export async function buildTaskCenterForAuth(overview, auth, employees = []) {
   if (!auth || auth.isBoss) {
     return buildBossTaskCenter(overview, auth, employees)
   }

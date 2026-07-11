@@ -165,7 +165,7 @@ function openEdit(row) {
 
 async function openDetail(row) {
   try {
-    const res = await fetchAssignedTaskDetail(row.id)
+    const res = await fetchAssignedTaskDetail(row.id, auth)
     activeTask.value = res.data.task
     activeFeedbacks.value = res.data.feedbacks
     detailVisible.value = true
@@ -221,7 +221,7 @@ async function loadData() {
       fetchEmployees(auth),
       fetchWarehouseStaff(auth),
       fetchWarehouseSites(auth, { activeOnly: true }),
-      fetchAssignedTasks(),
+      fetchAssignedTasks({}, auth),
     ])
     employees.value = empRes.data || []
     warehouseStaff.value = staffRes.data || []
@@ -275,7 +275,7 @@ async function submitForm() {
         priority: form.priority,
         due: form.due,
         warehouseName: form.warehouseName,
-      })
+      }, auth)
       ElMessage.success('任务已更新')
       dialogVisible.value = false
       await loadData()
@@ -283,7 +283,7 @@ async function submitForm() {
       const res = await assignTask(payload, {
         employees: employees.value,
         warehouseStaff: warehouseStaff.value,
-      })
+      }, auth)
       ElMessage.success('任务已分配')
       dialogVisible.value = false
       await loadData()
@@ -301,7 +301,7 @@ async function submitForm() {
 async function handleCancel(row) {
   try {
     await ElMessageBox.confirm(`确定取消任务「${row.title}」？`, '取消任务', { type: 'warning' })
-    await cancelAssignedTask(row.id)
+    await cancelAssignedTask(row.id, auth)
     ElMessage.success('任务已取消')
     detailVisible.value = false
     await loadData()
@@ -313,7 +313,7 @@ async function handleCancel(row) {
 async function handleDelete(row) {
   try {
     await ElMessageBox.confirm(`确定删除任务「${row.title}」？`, '删除任务', { type: 'warning' })
-    await removeAssignedTask(row.id)
+    await removeAssignedTask(row.id, auth)
     ElMessage.success('任务已删除')
     detailVisible.value = false
     await loadData()

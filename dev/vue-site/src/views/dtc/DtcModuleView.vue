@@ -13,6 +13,7 @@ import DtcProductTable from '@/components/dtc/DtcProductTable.vue'
 import DtcTrafficPanel from '@/components/dtc/DtcTrafficPanel.vue'
 import DtcCampaignPanel from '@/components/dtc/DtcCampaignPanel.vue'
 import { aggregateDtcTraffic, normalizeDtcStore } from '@/utils/dtcStore'
+import { isPlatformOperationalDemoOnly, platformOperationalHint } from '@/utils/platformOperationalMode'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -22,6 +23,9 @@ const selectedStoreId = ref('all')
 const dtcStores = ref([])
 const dtcDemo = ref({ products: [], campaigns: [], traffic: {}, meta: {} })
 const loadingStores = ref(false)
+
+const operationalDemoOnly = computed(() => isPlatformOperationalDemoOnly('dtc'))
+const operationalHint = computed(() => platformOperationalHint('dtc'))
 
 const boundStoreIds = computed(() => dtcStores.value.map((store) => store.id))
 
@@ -90,10 +94,10 @@ async function loadDtcStores() {
   try {
     const res = await fetchDtcStores()
     dtcStores.value = scopeStores(res.data || [], auth)
-    if (dtcStores.value.length) {
+    if (dtcStores.value.length && !operationalDemoOnly.value) {
       const demoRes = loadDtcOperationalData(dtcStores.value)
       dtcDemo.value = demoRes.data
-    } else {
+    } else if (!dtcStores.value.length) {
       dtcDemo.value = { products: [], campaigns: [], traffic: {}, meta: {} }
     }
   } catch {
@@ -159,6 +163,15 @@ onActivated(loadDtcStores)
     </el-empty>
 
     <template v-else-if="dtcStores.length">
+      <el-alert
+        v-if="operationalDemoOnly && operationalHint"
+        :title="operationalHint"
+        type="info"
+        show-icon
+        :closable="false"
+        class="operational-hint"
+      />
+
       <DtcBossOverview
         v-if="auth.isBoss"
         :products="overviewProducts"

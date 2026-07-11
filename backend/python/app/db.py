@@ -1,6 +1,7 @@
 """SQLite 数据库：与 Java 后端共用 backend/data/crosshub.db"""
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -107,14 +108,15 @@ CREATE TABLE IF NOT EXISTS temu_sale (
   nickname TEXT NOT NULL DEFAULT '',
   username TEXT NOT NULL DEFAULT '',
   enterprise TEXT NOT NULL DEFAULT '',
-  UNIQUE (report_time, shop_id, ext_code)
+  UNIQUE (tenant_id, report_time, shop_id, ext_code)
 );
 """
 
 
 def connect() -> sqlite3.Connection:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    db_path = Path(os.getenv("CROSSHUB_DB_PATH", str(DB_PATH)))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 

@@ -13,6 +13,7 @@ import { fetchWalmartStores } from '@/api/platformAccounts'
 import { scopeStores } from '@/utils/scope'
 import { useStoreAssignees } from '@/composables/useStoreAssignees'
 import { enrichListingIssue } from '@/utils/walmart'
+import { isPlatformOperationalDemoOnly, platformOperationalHint } from '@/utils/platformOperationalMode'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
 import WalmartBossOverview from '@/components/walmart/WalmartBossOverview.vue'
@@ -34,6 +35,9 @@ const loadingOrders = ref(false)
 const loadingListings = ref(false)
 const listingsPanel = ref(null)
 const listingsFilter = ref('all')
+
+const operationalDemoOnly = computed(() => isPlatformOperationalDemoOnly('walmart'))
+const operationalHint = computed(() => platformOperationalHint('walmart'))
 
 const storeNameMap = computed(() =>
   Object.fromEntries(walmartStores.value.map((store) => [store.id, store.storeName])),
@@ -81,7 +85,7 @@ const pendingListingCount = computed(() =>
 )
 
 async function syncTodayOrders(refresh = false) {
-  if (!walmartStores.value.length) {
+  if (operationalDemoOnly.value || !walmartStores.value.length) {
     todayOrders.value = []
     ordersSyncedAt.value = ''
     return
@@ -103,7 +107,7 @@ async function syncTodayOrders(refresh = false) {
 }
 
 async function syncListings(refresh = false) {
-  if (!walmartStores.value.length) {
+  if (operationalDemoOnly.value || !walmartStores.value.length) {
     listingIssues.value = []
     listingsSyncedAt.value = ''
     return
@@ -146,9 +150,9 @@ async function loadWalmartModule() {
   try {
     const res = await fetchWalmartStores()
     walmartStores.value = scopeStores(res.data || [], auth)
-    if (walmartStores.value.length) {
+    if (walmartStores.value.length && !operationalDemoOnly.value) {
       await Promise.all([syncTodayOrders(false), syncListings(false)])
-    } else {
+    } else if (!walmartStores.value.length) {
       todayOrders.value = []
       listingIssues.value = []
       ordersSyncedAt.value = ''
@@ -231,6 +235,15 @@ onActivated(loadWalmartModule)
     </el-empty>
 
     <template v-else-if="walmartStores.length">
+      <el-alert
+        v-if="operationalDemoOnly && operationalHint"
+        :title="operationalHint"
+        type="info"
+        show-icon
+        :closable="false"
+        class="operational-hint"
+      />
+
       <WalmartBossOverview
         v-if="auth.isBoss"
         :orders="filteredOrders"

@@ -1,19 +1,15 @@
 import { DEMO_EMPLOYEES } from '@/constants/employees'
 import { validateStoreAssignmentConflict } from '@/utils/storeAssignment'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
 const STORAGE_KEY = 'crosshub_employees'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, []) || []
 }
 
-function saveAll(employees) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(employees))
+function saveAll(employees, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, employees)
 }
 
 function createId() {
@@ -21,8 +17,9 @@ function createId() {
 }
 
 /** 始终同步 Demo 员工样本（按 id 覆盖更新，保留已编辑字段） */
-export function ensureDemoEmployees() {
-  const existing = loadAll()
+export function ensureDemoEmployees(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  const existing = loadAll(tenantId)
   const demoById = Object.fromEntries(DEMO_EMPLOYEES.map((e) => [e.id, e]))
   const custom = existing.filter((item) => !demoById[item.id])
   const mergedDemos = DEMO_EMPLOYEES.map((item) => {
@@ -34,7 +31,7 @@ export function ensureDemoEmployees() {
       password: current.password || item.password,
     }
   })
-  saveAll([...custom, ...mergedDemos])
+  saveAll([...custom, ...mergedDemos], tenantId)
 }
 
 function validateEmployeeInput({ name, account, role, platforms, password, id, employees }) {

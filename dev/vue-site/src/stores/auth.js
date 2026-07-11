@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { clearAccessToken, fetchBackendSession } from '@/api/request'
 import { resolveSidebarMenus, flattenMenuPaths } from '@/utils/menuAuth'
 import { resolveWarehouseNames } from '@/utils/warehouseScope'
+import { usePlatformSyncStore } from '@/stores/platformSync'
 
 function readJson(key, fallback) {
   try {
@@ -43,7 +44,9 @@ export const useAuthStore = defineStore('auth', () => {
   const backendLinked = ref(localStorage.getItem('backend_linked') === '1')
   const backendUserId = ref(Number(localStorage.getItem('backend_user_id') || 0) || null)
   const backendRole = ref(localStorage.getItem('backend_role') || '')
-  const tenantId = ref(Number(localStorage.getItem('backend_tenant_id') || 0) || null)
+  const tenantId = ref(
+    Number(localStorage.getItem('backend_tenant_id') || localStorage.getItem('crosshub_local_tenant_id') || 0) || null,
+  )
   const menus = ref(readJson('crosshub_menus', []))
   const platforms = ref(readJson('crosshub_platforms', []))
   const shopScope = ref(readJson('crosshub_shop_scope', []))
@@ -239,6 +242,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    usePlatformSyncStore().resetSession()
     isLoggedIn.value = false
     backendLinked.value = false
     backendRole.value = ''

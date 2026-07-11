@@ -1,6 +1,9 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import { TOP_PRODUCTS_SEED, OUTBOUND_ORDERS_SEED } from '@/constants/amazonBoss'
 
 const STORAGE_KEY = 'crosshub_amazon_boss'
+
+const EMPTY = { date: '', syncedAt: '', products: [], outboundOrders: [] }
 
 function nowText() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19)
@@ -10,19 +13,12 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw
-      ? JSON.parse(raw)
-      : { date: '', syncedAt: '', products: [], outboundOrders: [] }
-  } catch {
-    return { date: '', syncedAt: '', products: [], outboundOrders: [] }
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, EMPTY) || { ...EMPTY }
 }
 
-function saveAll(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+function saveAll(state, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, state)
 }
 
 function mergeSeeds(existing, seeds, boundIds) {
@@ -78,7 +74,7 @@ export function ensureAmazonBossData(stores = []) {
 }
 
 export function fetchAmazonBossData(stores = []) {
-  const state = ensureBossData(stores)
+  const state = ensureAmazonBossData(stores)
   return {
     success: true,
     data: {
@@ -90,7 +86,7 @@ export function fetchAmazonBossData(stores = []) {
 }
 
 export async function syncAmazonBossData(stores = [], options = {}) {
-  const state = ensureBossData(stores)
+  const state = ensureAmazonBossData(stores)
   if (options.refresh) {
     state.syncedAt = nowText()
     saveAll(state)

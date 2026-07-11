@@ -1,0 +1,48 @@
+package com.crosshub.temu.controller;
+
+import com.crosshub.common.ApiResult;
+import com.crosshub.common.AppErrorCode;
+import com.crosshub.temu.dto.CrawlRequest;
+import com.crosshub.temu.entity.TemuCrawlJob;
+import com.crosshub.temu.mapper.TemuMapper;
+import com.crosshub.temu.service.CrawlConflictException;
+import com.crosshub.temu.service.TemuCrawlService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/temu")
+public class TemuCrawlController {
+    private final TemuCrawlService crawlService;
+    private final TemuMapper temuMapper;
+
+    public TemuCrawlController(TemuCrawlService crawlService, TemuMapper temuMapper) {
+        this.crawlService = crawlService;
+        this.temuMapper = temuMapper;
+    }
+
+    @PostMapping("/crawl")
+    public ResponseEntity<Map<String, Object>> trigger(@RequestBody(required = false) CrawlRequest request) {
+        CrawlRequest body = request == null ? new CrawlRequest(null, null) : request;
+        try {
+            TemuCrawlJob job = crawlService.triggerCrawl(body.reportTime(), false);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResult.ok(temuMapper.toCrawlJobDto(job)));
+        } catch (CrawlConflictException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResult.conflict(
+                            409,
+                            AppErrorCode.CRAWL_IN_PROGRESS.getUserMessage(),
+                            AppErrorCode.CRAWL_IN_PROGRESS.getCode(),
+                            temuMapper.toCrawlJobDto(ex.getExistingJob())
+                    ));
+        }
+    }
+
+    @GetMapping("/crawl/{jobId}")
+    public Map<String, Object> status(@PathVariable String jobId) {
+        return ApiResult.ok(temuMapper.toCrawlJobDto(crawlService.getJob(jobId)));
+    }
+}

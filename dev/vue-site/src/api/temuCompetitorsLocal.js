@@ -1,18 +1,14 @@
 import { DEMO_COMPETITORS } from '@/constants/temuCompetitors'
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 
 const STORAGE_KEY = 'crosshub_temu_competitors'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, []) || []
 }
 
-function saveAll(competitors) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(competitors))
+function saveAll(competitors, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, competitors)
 }
 
 function createId() {

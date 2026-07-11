@@ -48,6 +48,8 @@ const {
   shipDialogType,
   shipSubmitting,
   platformLabel,
+  operationalDemoOnly,
+  operationalHint,
 } = useDomesticModule({
   platformKey: 'channels',
   fetchStores: fetchChannelsStores,
@@ -92,6 +94,15 @@ const {
     </el-empty>
 
     <template v-else-if="stores.length">
+      <el-alert
+        v-if="operationalDemoOnly && operationalHint"
+        :title="operationalHint"
+        type="info"
+        show-icon
+        :closable="false"
+        class="operational-hint"
+      />
+
       <DomesticBossOverview
         v-if="auth.isBoss"
         :orders="filteredOrders"

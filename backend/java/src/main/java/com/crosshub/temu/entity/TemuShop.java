@@ -3,7 +3,10 @@ package com.crosshub.temu.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "temu_shop")
+@Table(
+        name = "temu_shop",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "shop_id"})
+)
 public class TemuShop {
     @Id
     @Column(name = "shop_id")

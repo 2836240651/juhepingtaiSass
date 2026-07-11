@@ -14,6 +14,14 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+.monitor-smoke.env
+租户账密.md
+AGENTS.md
+README.md
+**/README.md
+backend/python/crosshub.db
+backend/python/.aliexpress-browser-profile/
+backend/data/
 
 # OS / editor
 .DS_Store
@@ -31,3 +39,7 @@ __screenshots__/
 # Deploy build artifacts & local SSH probes (may contain credentials)
 deploy/.build/
 scripts/_ssh-probe/
+
+# Python monitor runtime artifacts
+backend/python/exports/
+backend/python/reports/

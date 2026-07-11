@@ -33,27 +33,7 @@ export function markBroadcastRead(broadcastId, readerName) {
   return list
 }
 
-/** 从后端爆款列表生成初始通报种子 */
-export function seedBroadcastsFromOverload(products = []) {
-  const existing = loadHotBroadcasts()
-  if (existing.length) return existing
-
-  const seeds = products
-    .filter((p) => p.isOverload || p.isHot)
-    .slice(0, 5)
-    .map((p, index) => ({
-      id: `overload-${p.sku}-${index}`,
-      time: new Date().toLocaleString('zh-CN', { hour12: false }),
-      sku: p.sku,
-      name: p.name,
-      dailySales: p.dailySales,
-      avg7DayDaily: p.avg7DayDaily,
-      surgeRatio: p.surgeRatio,
-      operator: '后端爆款榜',
-      readBy: [],
-      fromServer: true,
-    }))
-
-  if (seeds.length) saveHotBroadcasts(seeds)
-  return seeds.length ? seeds : existing
+/** @deprecated 种子数据模式已关闭，仅返回已有本地通报 */
+export function seedBroadcastsFromOverload() {
+  return loadHotBroadcasts()
 }

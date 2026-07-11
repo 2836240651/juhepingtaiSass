@@ -80,7 +80,7 @@ const { coveringEyes } = useYotoMascot()
 <style scoped>
 .hero-illus {
   width: 100%;
-  max-width: 400px;
+  max-width: min(25rem, 100%);
   margin: 0 auto;
   transition: filter 0.3s ease;
 }

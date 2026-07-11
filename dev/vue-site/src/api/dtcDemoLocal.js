@@ -1,3 +1,4 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   DTC_CAMPAIGNS_SEED,
   DTC_CAMPAIGN_TEMPLATES,
@@ -17,17 +18,13 @@ const EMPTY_DATA = () => ({
   meta: {},
 })
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? { ...EMPTY_DATA(), ...JSON.parse(raw) } : EMPTY_DATA()
-  } catch {
-    return EMPTY_DATA()
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  const data = loadScoped(tenantId, STORAGE_KEY, null)
+  return data ? { ...EMPTY_DATA(), ...data } : EMPTY_DATA()
 }
 
-function saveAll(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function saveAll(data, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, data)
 }
 
 function hashStoreId(id) {

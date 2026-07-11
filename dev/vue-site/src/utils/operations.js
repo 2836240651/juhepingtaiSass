@@ -1,6 +1,11 @@
 import { OPERATION_TASKS } from '@/constants/operations'
+import { isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
-export function calcTaskStats(tasks = OPERATION_TASKS) {
+export function demoPlanTasks(auth) {
+  return isDemoTemplateEnabled(auth) ? OPERATION_TASKS : []
+}
+
+export function calcTaskStats(tasks = []) {
   const total = tasks.length
   const completed = tasks.filter((t) => t.status === '已完成').length
   const inProgress = tasks.filter((t) => t.status === '进行中').length
@@ -12,7 +17,7 @@ export function calcTaskStats(tasks = OPERATION_TASKS) {
   return { total, completed, inProgress, pending, overdue, completionRate, todayDone }
 }
 
-export function groupTasksByAssignee(tasks = OPERATION_TASKS) {
+export function groupTasksByAssignee(tasks = []) {
   const map = new Map()
   for (const task of tasks) {
     if (!map.has(task.assignee)) {
@@ -30,7 +35,7 @@ export function groupTasksByAssignee(tasks = OPERATION_TASKS) {
   }))
 }
 
-export function groupTasksByPlatform(tasks = OPERATION_TASKS) {
+export function groupTasksByPlatform(tasks = []) {
   const map = new Map()
   for (const task of tasks) {
     if (!map.has(task.platform)) {
@@ -46,13 +51,14 @@ export function groupTasksByPlatform(tasks = OPERATION_TASKS) {
 }
 
 export function filterTasksForAuth(employees, auth) {
-  if (!auth || auth.isBoss) return OPERATION_TASKS
+  const plan = demoPlanTasks(auth)
+  if (!auth || auth.isBoss) return plan
 
   const employeeId = auth.employee?.id
   const employeeName = auth.employee?.name
   const platforms = new Set(auth.employee?.platforms || [])
 
-  return OPERATION_TASKS.filter((task) => {
+  return plan.filter((task) => {
     if (employeeId && task.employeeId === employeeId) return true
     if (employeeName && task.assignee === employeeName) return true
     if (task.platformKey && platforms.has(task.platformKey)) return true

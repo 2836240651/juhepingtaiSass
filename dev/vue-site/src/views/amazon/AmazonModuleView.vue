@@ -3,10 +3,15 @@ import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { usePlatformSyncStore } from '@/stores/platformSync'
+import { buildPlatformSyncTargets } from '@/api/platformSync'
 import {
   loadAmazonDailyWorkflow,
   loadAmazonBossInsights,
   refreshAmazonBossInsights,
+  refreshAmazonDailyWorkflow,
+  refreshAmazonAccountHealth,
+  refreshAmazonAllData,
   replyBuyerMessage,
   handleReview,
   acknowledgeCase,
@@ -17,6 +22,8 @@ import { scopeStores } from '@/utils/scope'
 import { useStoreAssignees } from '@/composables/useStoreAssignees'
 import { buildAmazonDailyChecklist } from '@/utils/amazon'
 import { summarizeTopProducts, summarizeOutboundOrders } from '@/utils/amazonBoss'
+import { resolveAmazonProductEmptyHint } from '@/utils/amazonProductHint'
+import { isPlatformOperationalDemoOnly, platformOperationalHint } from '@/utils/platformOperationalMode'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
 import AmazonDailyOverview from '@/components/amazon/AmazonDailyOverview.vue'
@@ -30,8 +37,10 @@ import AmazonCouponsPanel from '@/components/amazon/AmazonCouponsPanel.vue'
 import AmazonSellerNewsPanel from '@/components/amazon/AmazonSellerNewsPanel.vue'
 import AmazonShipmentsPanel from '@/components/amazon/AmazonShipmentsPanel.vue'
 import AmazonCasesPanel from '@/components/amazon/AmazonCasesPanel.vue'
+import AmazonIntegrationGuide from '@/components/amazon/AmazonIntegrationGuide.vue'
 
 const auth = useAuthStore()
+const syncStore = usePlatformSyncStore()
 const { assigneeMap, loadAssignees, enrichItems } = useStoreAssignees()
 const router = useRouter()
 
@@ -46,6 +55,9 @@ const bossSyncedAt = ref('')
 const loadingStores = ref(false)
 const loading = ref(false)
 const loadingBoss = ref(false)
+const loadingReports = ref(false)
+const loadingAll = ref(false)
+const productSyncIssue = ref(null)
 
 const messagesPanel = ref(null)
 const reviewsPanel = ref(null)
@@ -53,6 +65,10 @@ const productsPanel = ref(null)
 const outboundPanel = ref(null)
 const productsFilter = ref('all')
 const outboundFilter = ref('pending')
+
+const operationalDemoOnly = computed(() => isPlatformOperationalDemoOnly('amazon'))
+const operationalHint = computed(() => platformOperationalHint('amazon'))
+const showIntegrationGuide = computed(() => auth.backendLinked && !operationalDemoOnly.value)
 
 const storeNameMap = computed(() =>
   Object.fromEntries(amazonStores.value.map((s) => [s.id, s.storeName])),
@@ -136,39 +152,142 @@ function applyBossData(data) {
   bossProducts.value = data.products || []
   outboundOrders.value = data.outboundOrders || []
   bossSyncedAt.value = data.syncedAt || ''
+  if (bossProducts.value.length) {
+    productSyncIssue.value = null
+  }
+}
+
+function notifySyncResult(res, fallbackMessage) {
+  if (res?.partial) {
+    productSyncIssue.value = resolveAmazonProductEmptyHint({
+      errorCode: res.errorCode,
+      errorMessage: res.warning || res.errorMessage,
+      syncedAt: bossSyncedAt.value || syncedAt.value,
+    })
+    ElMessage.warning(res.warning || res.message || fallbackMessage)
+    return
+  }
+  ElMessage.success(res?.message || fallbackMessage)
+}
+
+function notifySyncError(err) {
+  productSyncIssue.value = resolveAmazonProductEmptyHint({
+    errorCode: err?.code || err?.errorCode,
+    errorMessage: err?.message,
+    syncedAt: bossSyncedAt.value || syncedAt.value,
+  })
+  ElMessage.error(err?.message || '同步失败')
+}
+
+async function ensurePlatformSyncSeeded() {
+  if (!auth.backendLinked || syncStore.hasItems) return
+  try {
+    const targets = await buildPlatformSyncTargets(auth)
+    if (targets.length) syncStore.updateItems(targets)
+  } catch {
+    // best effort
+  }
 }
 
 async function syncBossInsights(refresh = false) {
-  if (!amazonStores.value.length) {
+  if (operationalDemoOnly.value || !amazonStores.value.length) {
     applyBossData({ products: [], outboundOrders: [], syncedAt: '' })
     return
   }
   loadingBoss.value = true
   try {
     const res = refresh
-      ? await refreshAmazonBossInsights(amazonStores.value, { refresh: true })
-      : loadAmazonBossInsights(amazonStores.value)
+      ? await refreshAmazonBossInsights(amazonStores.value, { refresh: true, scope: 'reports' })
+      : await loadAmazonBossInsights(amazonStores.value)
     applyBossData(res.data)
-    if (refresh) ElMessage.success(res.message || '已刷新产品数据')
+    if (refresh) notifySyncResult(res, '已刷新产品数据')
   } catch (err) {
-    ElMessage.error(err.message || '产品数据加载失败')
+    notifySyncError(err)
   } finally {
     loadingBoss.value = false
   }
 }
 
-async function syncWorkflow() {
-  if (!amazonStores.value.length) {
+async function syncBossReports(refresh = false) {
+  if (operationalDemoOnly.value || !amazonStores.value.length) {
+    return
+  }
+  loadingReports.value = true
+  try {
+    const res = refresh
+      ? await refreshAmazonBossInsights(amazonStores.value, { refresh: true, scope: 'reports' })
+      : await loadAmazonBossInsights(amazonStores.value)
+    applyBossData(res.data)
+    if (refresh) notifySyncResult(res, '已刷新 Business Report 产品数据')
+  } catch (err) {
+    notifySyncError(err)
+  } finally {
+    loadingReports.value = false
+  }
+}
+
+async function syncWorkflow(refresh = false) {
+  if (operationalDemoOnly.value || !amazonStores.value.length) {
     applyWorkflowData(emptyWorkflow())
     return
   }
   loading.value = true
   try {
-    const res = loadAmazonDailyWorkflow(amazonStores.value)
+    const res = refresh
+      ? await refreshAmazonDailyWorkflow(amazonStores.value, { refresh: true })
+      : await loadAmazonDailyWorkflow(amazonStores.value)
     applyWorkflowData(res.data)
+    if (refresh) notifySyncResult(res, '已刷新今日运营数据')
   } catch (err) {
-    ElMessage.error(err.message || '加载失败')
+    notifySyncError(err)
   } finally {
+    loading.value = false
+  }
+}
+
+async function syncAccountHealth(refresh = false) {
+  if (operationalDemoOnly.value || !amazonStores.value.length) {
+    return
+  }
+  loading.value = true
+  try {
+    const res = refresh
+      ? await refreshAmazonAccountHealth(amazonStores.value, { refresh: true })
+      : await loadAmazonDailyWorkflow(amazonStores.value)
+    applyWorkflowData({ ...workflow.value, accountMetrics: res.data.accountMetrics || [], syncedAt: res.data.syncedAt })
+    if (refresh) ElMessage.success(res.message || '已刷新账户状况')
+  } catch (err) {
+    ElMessage.error(err.message || '账户状况加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function syncAllAmazon() {
+  if (operationalDemoOnly.value || !amazonStores.value.length) return
+  loadingAll.value = true
+  loadingBoss.value = true
+  loading.value = true
+  try {
+    const res = await refreshAmazonAllData(amazonStores.value)
+    if (res.dailyData) applyWorkflowData(res.dailyData)
+    else if (res.data?.daily) applyWorkflowData(res.data.daily)
+    if (res.insightsData) applyBossData(res.insightsData)
+    else if (res.data?.insights) applyBossData(res.data.insights)
+    if (!res.dailyData && !res.data?.daily) {
+      const [dailyRes, insightsRes] = await Promise.all([
+        loadAmazonDailyWorkflow(amazonStores.value),
+        loadAmazonBossInsights(amazonStores.value),
+      ])
+      applyWorkflowData(dailyRes.data)
+      applyBossData(insightsRes.data)
+    }
+    notifySyncResult(res, '已刷新 Amazon 全部数据（运营 + 产品 + 广告）')
+  } catch (err) {
+    notifySyncError(err)
+  } finally {
+    loadingAll.value = false
+    loadingBoss.value = false
     loading.value = false
   }
 }
@@ -178,9 +297,15 @@ async function loadModule() {
   try {
     const res = await fetchAmazonStores()
     amazonStores.value = scopeStores(res.data || [], auth)
-    if (amazonStores.value.length) {
+    await ensurePlatformSyncSeeded()
+    if (amazonStores.value.length && !operationalDemoOnly.value) {
       await Promise.all([syncWorkflow(), syncBossInsights(false)])
-    } else {
+      if (!bossProducts.value.length) {
+        productSyncIssue.value = resolveAmazonProductEmptyHint({
+          syncedAt: bossSyncedAt.value,
+        })
+      }
+    } else if (!amazonStores.value.length) {
       applyWorkflowData(emptyWorkflow())
       applyBossData({ products: [], outboundOrders: [], syncedAt: '' })
     }
@@ -212,7 +337,7 @@ function handleNavigate(target) {
 
 async function onShipOutbound(payload) {
   try {
-    const res = shipOutboundOrder(payload.id, payload)
+    const res = await shipOutboundOrder(payload.id, payload)
     const idx = outboundOrders.value.findIndex((o) => o.id === payload.id)
     if (idx !== -1) outboundOrders.value[idx] = res.data
     ElMessage.success('已标记发货')
@@ -225,7 +350,7 @@ async function onShipOutbound(payload) {
 
 async function onReplyMessage(payload) {
   try {
-    const res = replyBuyerMessage(payload.id, payload)
+    const res = await replyBuyerMessage(payload.id, payload)
     const idx = workflow.value.buyerMessages.findIndex((m) => m.id === payload.id)
     if (idx !== -1) workflow.value.buyerMessages[idx] = res.data
     ElMessage.success('已回复买家消息')
@@ -238,7 +363,7 @@ async function onReplyMessage(payload) {
 
 async function onHandleReview(payload) {
   try {
-    const res = handleReview(payload.id, payload)
+    const res = await handleReview(payload.id, payload)
     const idx = workflow.value.reviews.findIndex((r) => r.id === payload.id)
     if (idx !== -1) workflow.value.reviews[idx] = res.data
     ElMessage.success('已标记差评处理')
@@ -251,7 +376,7 @@ async function onHandleReview(payload) {
 
 async function onAcknowledgeCase(id) {
   try {
-    const res = acknowledgeCase(id)
+    const res = await acknowledgeCase(id)
     const idx = workflow.value.cases.findIndex((c) => c.id === id)
     if (idx !== -1) workflow.value.cases[idx] = res.data
     ElMessage.success('已标记 Case 已读')
@@ -307,10 +432,31 @@ onActivated(loadModule)
     </el-empty>
 
     <template v-else-if="amazonStores.length">
+      <AmazonIntegrationGuide v-if="showIntegrationGuide" />
+
+      <div v-if="showIntegrationGuide && auth.isBoss" class="amazon-sync-bar">
+        <el-button type="primary" :loading="loadingAll" @click="syncAllAmazon">
+          一键刷新全部数据
+        </el-button>
+        <el-text size="small" type="info">
+          依次同步今日运营、Business Report 产品与广告（约 3–8 分钟，需紫鸟与同步助手在线）
+        </el-text>
+      </div>
+
+      <el-alert
+        v-if="operationalDemoOnly && operationalHint"
+        :title="operationalHint"
+        type="info"
+        show-icon
+        :closable="false"
+        class="operational-hint"
+      />
+
       <AmazonBossOverview
         v-if="auth.isBoss"
         :products="filteredProducts"
         :outbound-orders="filteredOutbound"
+        :account-metrics="filtered.accountMetrics"
         :stores="overviewStores"
         :assignee-map="assigneeMap"
         :show-store-list="showStoreList"
@@ -328,11 +474,14 @@ onActivated(loadModule)
               ref="productsPanel"
               :products="filteredProducts"
               :synced-at="bossSyncedAt"
+              :sync-issue="productSyncIssue"
               :loading="loadingBoss"
+              :reports-loading="loadingReports"
               :show-store-column="showStoreColumn"
               :store-name-map="storeNameMap"
               :initial-filter="productsFilter"
               @refresh="syncBossInsights(true)"
+              @refresh-reports="syncBossReports(true)"
             />
           </div>
         </el-tab-pane>
@@ -402,6 +551,7 @@ onActivated(loadModule)
               :loading="loading"
               :show-store-column="showStoreColumn"
               :store-name-map="storeNameMap"
+              @refresh="syncAccountHealth(true)"
             />
           </div>
         </el-tab-pane>
@@ -436,6 +586,7 @@ onActivated(loadModule)
               :loading="loading"
               :show-store-column="showStoreColumn"
               :store-name-map="storeNameMap"
+              @refresh="syncWorkflow(true)"
             />
           </div>
         </el-tab-pane>
@@ -468,6 +619,7 @@ onActivated(loadModule)
               :loading="loading"
               :show-store-column="showStoreColumn"
               :store-name-map="storeNameMap"
+              @refresh="syncWorkflow(true)"
             />
           </div>
         </el-tab-pane>
@@ -501,6 +653,14 @@ onActivated(loadModule)
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.amazon-sync-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .module-tabs :deep(.el-tabs__header) {

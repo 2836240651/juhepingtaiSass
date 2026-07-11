@@ -1,0 +1,106 @@
+[
+  {
+    "url": "https://guide.aliexpress.com/v2/api/guide/all?biz=AE&url=https%3A%2F%2Fcsp.aliexpress.com%2Fm_apps%2Fviolation%2Fviolist",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 0,
+    "sample": "{\"success\": true, \"message\": \"\", \"data\": []}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.yoda.web.show.yoda/1.0/?jsv=2.7.2&appKey=12574478&t=1783483602534&sign=37f56b0f77fc2ca3fb7072f1bc57a0e0&type=originaljson&api=mtop.csp.yoda.web.show.yoda&v=1.0&dataType=json&__channel-id__=2078391&data=%7B%22url%22%3A%22%2Fm_apps%2Fviolation%2Fviolist%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.csp.yoda.web.show.yoda\", \"data\": {\"result\": false}, \"ret\": [\"SUCCESS::调用成功\"], \"traceId\": \"0b1bf20a17834836036246557ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.merchant.menu.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783483602534&sign=37f56b0f77fc2ca3fb7072f1bc57a0e0&type=originaljson&api=mtop.csp.merchant.menu.get&v=1.0&dataType=json&__channel-id__=2078391&data=%7B%22url%22%3A%22%2Fm_apps%2Fviolation%2Fviolist%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 4,
+    "sample": "{\"api\": \"mtop.csp.merchant.menu.get\", \"data\": {\"module\": {\"buc\": \"CSP_AE_ONESTOPSERVICE\", \"currentMenuId\": \"Root-Home-violationcenter-myviolationviolist\", \"footerMenu\": [], \"headMenu\": [], \"isGray\": true, \"languages\": [{\"code\": \"en_US\", \"icon\": \"\", \"name\": \"English\"}, {\"code\": \"zh_CN\", \"icon\": \"\", \"name\": \"简体中文\"}], \"leftMenu\": [{\"action\": \"current\", \"collect\": false, \"icon\": \"overview\", \"id\": \"Root-Home-ChoiceDashboad\", \"level\": 2, \"link\": \"//gsp.aliexpress.com/m_apps/newhome/choice\", \"name\": \"首页\", \"position\": \"left\", \"referencedUris\": [\"/m_apps/newhome/choice\"], \"show\": false, \"type\": \"normal\"}, {\"action\": \"current\", \"collect\": false, \"icon\": \"product\", \"id\": \"Root-Home-productitemmanagement\", \"level\": 2, \"link\": \"//gsp.aliexpress.com/m_apps/home/global\", \"menu\": [{\"action\": \"current\", \"collect\": false, \"icon\": \"\", \"id\": \"Root-Home-productitemmanagement-QTGproductmanagement\", \"level\": 3, \"link\": \"//gsp.aliexpress.com/m_apps/choiceProductManage/list-manage\", \"name\": \"商品列表\", \"position\": \"left\", \"referencedUris\": [\"/apps/choiceProduct/publish\", \"/m_apps/aechoice-product-manage/list-aeChoice\", \"/aepop-product-manage/choice-generate-results\", \"/m_apps/global-sales-link/aeChoice-list-ma"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.cco.intl.consultation.widget.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783483602534&sign=59b899d80e5fc0dc1ead94a24a2b6b4d&type=originaljson&api=mtop.aliexpress.cco.intl.consultation.widget.get&v=1.0&dataType=json&__channel-id__=2078391&data=%7B%22url%22%3A%22https%3A%2F%2Fcsp.aliexpress.com%2Fm_apps%2Fviolation%2Fviolist%3FchannelId%3D2078391%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 2,
+    "sample": "{\"api\": \"mtop.aliexpress.cco.intl.consultation.widget.get\", \"data\": {\"resultData\": {\"channel\": \"aliexpress\", \"from\": \"mPxtNq85e0\"}, \"retry\": false}, \"ret\": [\"SUCCESS::调用成功\"], \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.level.seller.proxy.illegal.querypunishpoints/1.0/?jsv=2.7.2&appKey=30267743&t=1783483602543&sign=94e06cdc24ffcf4d1a390320ef45cd88&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.level.seller.proxy.illegal.queryPunishPoints&__channel-id__=2078391&api=mtop.ae.merchant.level.seller.proxy.illegal.queryPunishPoints&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.ae.merchant.level.seller.proxy.illegal.querypunishpoints\", \"appConf\": null, \"data\": {\"data\": {\"pointType\": \"common\", \"points\": [{\"name\": \"PRODUCT_QUALITY\", \"pointValue\": 0, \"value\": 0}, {\"name\": \"PROHIBITED_PRODUCT_AND_IPR\", \"pointValue\": 0, \"value\": 0}, {\"name\": \"TRADE_AND_OTHER\", \"pointValue\": 0, \"value\": 0}, {\"name\": \"SERIOUS_IPR\", \"pointValue\": 0, \"value\": 0}], \"storeIsDisabled\": false, \"storeStatusReasonTip\": \"您的店铺运营良好，目前无（或仅有少量）违规记录。请继续保持！\"}}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836040196564ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.seller.iopnotify.defence.pull/1.0/?jsv=2.7.2&appKey=30267743&t=1783483602534&sign=b1e7161620deff652d8d598cb7961e40&v=1.0&timeout=30000&H5Request=true&url=mtop.aliexpress.seller.iopnotify.defence.pull&__channel-id__=2078391&api=mtop.aliexpress.seller.iopnotify.defence.pull&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22pageName%22%3A%22%2Fm_apps%2Fviolation%2Fviolist%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 2,
+    "sample": "{\"api\": \"mtop.aliexpress.seller.iopnotify.defence.pull\", \"data\": {\"errorCode\": 0, \"result\": {\"popupList\": []}}, \"ret\": [\"SUCCESS::调用成功\"], \"traceId\": \"0b1bf20a17834836041336569ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.common.punish.gray.config/1.0/?jsv=2.7.2&appKey=30267743&t=1783483602543&sign=8668916c621d83034f7111164943eb5a&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.common.punish.gray.config&__channel-id__=2078391&api=mtop.ae.merchant.common.punish.gray.config&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22code%22%3A%22AMS_INC_POINT%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.ae.merchant.common.punish.gray.config\", \"appConf\": null, \"data\": {\"data\": \"yes\"}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836041346572ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.csp.illegal.querypunishlist/1.0/?jsv=2.7.2&appKey=30267743&t=1783483602534&sign=86a312e4ac515c897613a30124bd3ebf&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.csp.illegal.queryPunishList&__channel-id__=2078391&api=mtop.ae.merchant.csp.illegal.queryPunishList&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22currentPage%22%3A1%2C%22pageSize%22%3A10%2C%22showStatus%22%3A%22ALL%22%2C%22subType%22%3A%22ALL%22%2C%22days%22%3A%2230%22%2C%22version%22%3A%221.1%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 5,
+    "sample": "{\"api\": \"mtop.ae.merchant.csp.illegal.querypunishlist\", \"appConf\": null, \"data\": {\"currentPage\": 1, \"data\": [], \"extra\": null, \"pageSize\": 10, \"totalCount\": 0}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836041346570ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.csp.illegal.querypunishlist/1.0/?jsv=2.7.2&appKey=30267743&t=1783483603382&sign=4dfe36078a3ce0ae96a8ab67ce92bd48&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.csp.illegal.queryPunishList&__channel-id__=2078391&api=mtop.ae.merchant.csp.illegal.queryPunishList&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22currentPage%22%3A1%2C%22pageSize%22%3A10%2C%22showStatus%22%3A%22ALL%22%2C%22subType%22%3A%22ALL%22%2C%22days%22%3A%2230%22%2C%22version%22%3A%221.1%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 5,
+    "sample": "{\"api\": \"mtop.ae.merchant.csp.illegal.querypunishlist\", \"appConf\": null, \"data\": {\"currentPage\": 1, \"data\": [], \"extra\": null, \"pageSize\": 10, \"totalCount\": 0}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836045686581ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.level.seller.proxy.illegal.querypunishpoints/1.0/?jsv=2.7.2&appKey=30267743&t=1783483603382&sign=22f005e37d7da86f9cc2cf56abe68766&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.level.seller.proxy.illegal.queryPunishPoints&__channel-id__=2078391&api=mtop.ae.merchant.level.seller.proxy.illegal.queryPunishPoints&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.ae.merchant.level.seller.proxy.illegal.querypunishpoints\", \"appConf\": null, \"data\": {\"data\": {\"pointType\": \"common\", \"points\": [{\"name\": \"PRODUCT_QUALITY\", \"pointValue\": 0, \"value\": 0}, {\"name\": \"PROHIBITED_PRODUCT_AND_IPR\", \"pointValue\": 0, \"value\": 0}, {\"name\": \"TRADE_AND_OTHER\", \"pointValue\": 0, \"value\": 0}, {\"name\": \"SERIOUS_IPR\", \"pointValue\": 0, \"value\": 0}], \"storeIsDisabled\": false, \"storeStatusReasonTip\": \"您的店铺运营良好，目前无（或仅有少量）违规记录。请继续保持！\"}}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836045826582ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.csp.illegal.querypunishoverview/1.0/?jsv=2.7.2&appKey=30267743&t=1783483603420&sign=aa31152f07ce2e6c268fc078fde7d15e&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.csp.illegal.querypunishoverview&__channel-id__=2078391&api=mtop.ae.merchant.csp.illegal.querypunishoverview&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.ae.merchant.csp.illegal.querypunishoverview\", \"appConf\": null, \"data\": {\"data\": {\"waitAppealCaseCount\": 0, \"waitProofCaseCount\": 0}}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836046116583ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.ae.merchant.csp.illegal.querypunishoverview/1.0/?jsv=2.7.2&appKey=30267743&t=1783483603699&sign=4302ecc454e20a74cd838f883e7527c3&v=1.0&timeout=30000&H5Request=true&url=mtop.ae.merchant.csp.illegal.querypunishoverview&__channel-id__=2078391&api=mtop.ae.merchant.csp.illegal.querypunishoverview&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1,
+    "sample": "{\"api\": \"mtop.ae.merchant.csp.illegal.querypunishoverview\", \"appConf\": null, \"data\": {\"data\": {\"waitAppealCaseCount\": 0, \"waitProofCaseCount\": 0}}, \"ret\": [\"SUCCESS::success\"], \"traceId\": \"0b1bf20a17834836048756589ec92f\", \"v\": \"1.0\"}"
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.seller.iopnotify.popup.pull/1.0/?jsv=2.7.2&appKey=30267743&t=1783483603959&sign=5c4b0ce0f0f62f161c07aa60882a6a6b&v=1.0&timeout=30000&H5Request=true&url=mtop.aliexpress.seller.iopnotify.popup.pull&__channel-id__=2078391&api=mtop.aliexpress.seller.iopnotify.popup.pull&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22pageName%22%3A%22%2Fm_apps%2Fviolation%2Fviolist%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 2,
+    "sample": "{\"api\": \"mtop.aliexpress.seller.iopnotify.popup.pull\", \"data\": {\"errorCode\": 0, \"result\": {\"popupList\": []}}, \"ret\": [\"SUCCESS::调用成功\"], \"traceId\": \"0b1bf20a17834836051366594ec92f\", \"v\": \"1.0\"}"
+  }
+]

@@ -20,3 +20,19 @@ services:
       - "127.0.0.1:18081:18081"
     environment:
       PORT: "18081"
+
+  crosshub-python-worker:
+    image: crosshub-python-worker:latest
+    container_name: crosshub-python-worker
+    restart: unless-stopped
+    depends_on:
+      - crosshub-java
+    volumes:
+      - /data/crosshub/data:/data
+      - /data/crosshub/evidence:/evidence
+      - /data/crosshub/reports:/reports
+    environment:
+      PYTHONUNBUFFERED: "1"
+      CROSSHUB_DB_PATH: /data/crosshub.db
+      CROSSHUB_MONITOR_EVIDENCE_DIR: /evidence
+      CROSSHUB_SNAPSHOT_PROVIDER_MODE: ctf_page_card

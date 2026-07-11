@@ -1,22 +1,20 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import { WALMART_LISTING_ISSUES_SEED } from '@/constants/walmartDemo'
 
 const STORAGE_KEY = 'crosshub_walmart_listings'
+
+const EMPTY = { syncedAt: '', items: [] }
 
 function nowText() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19)
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { syncedAt: '', items: [] }
-  } catch {
-    return { syncedAt: '', items: [] }
-  }
+function loadState(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, EMPTY) || { ...EMPTY }
 }
 
-function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+function saveState(state, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, state)
 }
 
 function ensureIssuesForStores(stores) {

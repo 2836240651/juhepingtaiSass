@@ -39,3 +39,8 @@ export async function deleteBackendWarehouseOrder(id) {
   const res = await service.delete(`/api/warehouse/orders/${id}`)
   return res?.data ?? res
 }
+
+export async function createBackendWarehouseOrderFromPlatform(payload) {
+  const res = await service.post('/api/warehouse/orders/from-platform', payload)
+  return res?.data ?? res
+}

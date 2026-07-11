@@ -2,6 +2,7 @@
 import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Refresh } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import {
   loadAliExpressOperationalData,
@@ -10,16 +11,18 @@ import {
   crawlAliExpressViolations,
   confirmAliExpressViolationAppeal,
 } from '@/api/aliexpress'
+import { bootstrapAliExpressHotBroadcasts } from '@/api/aliexpressHotBroadcast'
 import { fetchAliExpressStores } from '@/api/platformAccounts'
 import { scopeStores } from '@/utils/scope'
 import { useStoreAssignees } from '@/composables/useStoreAssignees'
 import { enrichAllProducts } from '@/utils/temu'
+import { isPlatformOperationalDemoOnly, platformOperationalHint } from '@/utils/platformOperationalMode'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
 import AliExpressBossOverview from '@/components/aliexpress/AliExpressBossOverview.vue'
 import AliExpressOrdersPanel from '@/components/aliexpress/AliExpressOrdersPanel.vue'
 import AliExpressViolationsPanel from '@/components/aliexpress/AliExpressViolationsPanel.vue'
-import HotProductBroadcast from '@/components/temu/HotProductBroadcast.vue'
+import AliExpressHotBroadcast from '@/components/aliexpress/AliExpressHotBroadcast.vue'
 
 const auth = useAuthStore()
 const { assigneeMap, loadAssignees, enrichItems } = useStoreAssignees()
@@ -38,6 +41,9 @@ const loadingOrders = ref(false)
 const loadingViolations = ref(false)
 const violationsPanel = ref(null)
 const violationsFilter = ref('all')
+
+const operationalDemoOnly = computed(() => isPlatformOperationalDemoOnly('aliexpress'))
+const operationalHint = computed(() => platformOperationalHint('aliexpress'))
 
 const storeNameMap = computed(() =>
   Object.fromEntries(aliexpressStores.value.map((store) => [store.id, store.storeName])),
@@ -59,11 +65,17 @@ const products = computed(() => {
 const enrichedOrders = computed(() => enrichItems(todayOrders.value))
 const enrichedViolations = computed(() => enrichItems(violations.value))
 
-const visibleSkus = computed(() => new Set(products.value.map((product) => product.sku)))
+const broadcasts = computed(() => hotBroadcasts.value)
 
-const broadcasts = computed(() =>
-  hotBroadcasts.value.filter((item) => visibleSkus.value.has(item.sku)),
-)
+async function loadHotBroadcastFeed() {
+  hotBroadcasts.value = await bootstrapAliExpressHotBroadcasts(auth, {
+    storeId: selectedStoreId.value,
+  })
+}
+
+function onBroadcastsUpdate(list) {
+  hotBroadcasts.value = list
+}
 
 const showStoreColumn = computed(() => selectedStoreId.value === 'all')
 
@@ -111,7 +123,7 @@ async function syncTodayOrders(refresh = false) {
 
   loadingOrders.value = true
   try {
-    const res = await fetchTodayAliExpressOrders(aliexpressStores.value, { refresh })
+    const res = await fetchTodayAliExpressOrders(aliexpressStores.value, { refresh, auth })
     todayOrders.value = res.data.orders
     ordersSyncedAt.value = res.data.syncedAt
     if (refresh) {
@@ -134,8 +146,8 @@ async function syncViolations(refresh = false) {
   loadingViolations.value = true
   try {
     const res = refresh
-      ? await crawlAliExpressViolations(aliexpressStores.value, { refresh: true })
-      : loadAliExpressViolations(aliexpressStores.value)
+      ? await crawlAliExpressViolations(aliexpressStores.value, { refresh: true, auth })
+      : await loadAliExpressViolations(aliexpressStores.value, auth)
     violations.value = res.data.violations
     violationsSyncedAt.value = res.data.syncedAt
     if (refresh) {
@@ -150,11 +162,11 @@ async function syncViolations(refresh = false) {
 
 async function handleConfirmViolation(payload) {
   try {
-    const res = confirmAliExpressViolationAppeal(payload.id, {
+    const res = await confirmAliExpressViolationAppeal(payload.id, {
       appealStatus: payload.appealStatus,
       appealResult: payload.appealResult,
       appealNote: payload.appealNote,
-    })
+    }, auth)
     const index = violations.value.findIndex((item) => item.id === payload.id)
     if (index !== -1) {
       violations.value[index] = res.data
@@ -173,11 +185,11 @@ async function loadAliExpressModule() {
     const res = await fetchAliExpressStores()
     aliexpressStores.value = scopeStores(res.data || [], auth)
     if (aliexpressStores.value.length) {
-      const demoRes = loadAliExpressOperationalData(aliexpressStores.value)
-      rawProducts.value = demoRes.data.products
-      hotBroadcasts.value = demoRes.data.broadcasts
+      const demoRes = await loadAliExpressOperationalData(aliexpressStores.value, auth)
+      rawProducts.value = demoRes.products || demoRes.data?.products || []
+      await loadHotBroadcastFeed()
       await Promise.all([syncTodayOrders(false), syncViolations(false)])
-    } else {
+    } else if (!aliexpressStores.value.length) {
       rawProducts.value = []
       hotBroadcasts.value = []
       todayOrders.value = []
@@ -195,6 +207,36 @@ async function loadAliExpressModule() {
     violationsSyncedAt.value = ''
   } finally {
     loadingStores.value = false
+  }
+}
+
+async function reloadOperationalBundle() {
+  const data = await loadAliExpressOperationalData(aliexpressStores.value, auth)
+  rawProducts.value = data.products || []
+  await loadHotBroadcastFeed()
+}
+
+async function handleRefreshAll() {
+  if (!aliexpressStores.value.length) return
+  loadingOrders.value = true
+  loadingViolations.value = true
+  try {
+    const orderRes = await fetchTodayAliExpressOrders(aliexpressStores.value, { refresh: true, auth })
+    todayOrders.value = orderRes.data.orders
+    ordersSyncedAt.value = orderRes.data.syncedAt
+    await reloadOperationalBundle()
+    const violationRes = await loadAliExpressViolations(aliexpressStores.value, auth)
+    violations.value = violationRes.data.violations
+    violationsSyncedAt.value = violationRes.data.syncedAt
+    ElMessage.success(
+      orderRes.message
+        || `已同步 ${todayOrders.value.length} 笔订单、${violations.value.length} 条违规`,
+    )
+  } catch (err) {
+    ElMessage.error(err.message || '同步失败')
+  } finally {
+    loadingOrders.value = false
+    loadingViolations.value = false
   }
 }
 
@@ -220,6 +262,10 @@ watch(aliexpressStores, (stores) => {
   }
 })
 
+watch(selectedStoreId, () => {
+  loadHotBroadcastFeed()
+})
+
 onMounted(async () => {
   await loadAssignees()
   await loadAliExpressModule()
@@ -231,16 +277,30 @@ onActivated(loadAliExpressModule)
   <PageScroll>
     <template #header>
       <div v-if="aliexpressStores.length" class="page-toolbar">
-        <el-radio-group v-model="selectedStoreId" size="small">
-          <el-radio-button value="all">全部店铺</el-radio-button>
-          <el-radio-button
-            v-for="store in aliexpressStores"
-            :key="store.id"
-            :value="store.id"
+        <el-space wrap>
+          <el-radio-group v-model="selectedStoreId" size="small">
+            <el-radio-button value="all">全部店铺</el-radio-button>
+            <el-radio-button
+              v-for="store in aliexpressStores"
+              :key="store.id"
+              :value="store.id"
+            >
+              {{ store.storeName }}
+            </el-radio-button>
+          </el-radio-group>
+          <el-button
+            type="primary"
+            size="small"
+            :icon="Refresh"
+            :loading="loadingOrders || loadingViolations"
+            @click="handleRefreshAll"
           >
-            {{ store.storeName }}
-          </el-radio-button>
-        </el-radio-group>
+            同步数据
+          </el-button>
+          <el-text v-if="ordersSyncedAt" size="small" type="info">
+            订单 {{ ordersSyncedAt }}
+          </el-text>
+        </el-space>
       </div>
 
       <PageHeader
@@ -264,6 +324,15 @@ onActivated(loadAliExpressModule)
     </el-empty>
 
     <template v-else-if="aliexpressStores.length">
+      <el-alert
+        v-if="operationalDemoOnly && operationalHint"
+        :title="operationalHint"
+        type="info"
+        show-icon
+        :closable="false"
+        class="operational-hint"
+      />
+
       <AliExpressBossOverview
         v-if="auth.isBoss"
         :orders="filteredOrders"
@@ -319,7 +388,12 @@ onActivated(loadAliExpressModule)
             <el-badge v-if="hotProductCount" :value="hotProductCount" class="tab-badge" />
           </template>
           <div class="tab-panel">
-            <HotProductBroadcast :products="products" :broadcasts="broadcasts" />
+            <AliExpressHotBroadcast
+              :products="products"
+              :broadcasts="broadcasts"
+              :store-id="selectedStoreId"
+              @update:broadcasts="onBroadcastsUpdate"
+            />
           </div>
         </el-tab-pane>
       </el-tabs>

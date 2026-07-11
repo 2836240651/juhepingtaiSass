@@ -1,11 +1,20 @@
-import { fetchPlatformStores, fetchAliExpressStores, fetchWalmartStores, fetchPddStores, fetchDouyinStores, fetchChannelsStores, fetchAmazonStores, fetchAlibaba1688Stores, fetchDtcStores } from './platformAccounts'
+import { fetchPlatformStores, fetchAllPlatformStores, fetchAliExpressStores, fetchWalmartStores, fetchPddStores, fetchDouyinStores, fetchChannelsStores, fetchAmazonStores, fetchAlibaba1688Stores, fetchDtcStores } from './platformAccounts'
+import { canUseTemuBackend, fetchTemuOperationalData, fetchTemuStores } from './temuApi'
+import { hasBackendSession } from './backendSession'
+import { DTC_PLATFORMS } from '@/constants/platforms'
 import { TEMU_PRODUCTS_RAW } from '@/constants/temu'
 import { enrichAllProducts } from '@/utils/temu'
 import { buildOperationsOverview } from '@/utils/operationsOverview'
 import { buildPlatformSalesRows } from '@/utils/platformMetrics'
 import { scopeStores } from '@/utils/scope'
 import { getTemuRestockStatusMap } from './temuRestockLocal'
+import { loadTemuRestockStatusMap } from './temuRestock'
 import { loadCachedAliExpressOrders, loadAliExpressViolations } from './aliexpress'
+import {
+  canUseAliExpressBackend,
+  fetchTodayAliExpressOrdersFromApi,
+  loadAliExpressViolationsFromApi,
+} from './aliexpressApi'
 import { loadCachedWalmartOrders, loadWalmartListingIssues } from './walmart'
 import { enrichListingIssue } from '@/utils/walmart'
 import { enrichDomesticIssue } from '@/utils/domesticPlatform'
@@ -17,6 +26,7 @@ import { ensureAliexpressDemoData } from './aliexpressDemoLocal'
 import { loadAlibaba1688DemoData } from './alibaba1688DemoLocal'
 import { ensureAmazonDailyData } from './amazonDailyLocal'
 import { loadAmazonDailyWorkflow } from './amazon'
+import { fetchAmazonDailyFromBackend } from './amazonApi'
 import { loadDtcTodayOrders, ensureDtcOrdersDemo } from './dtcOrdersLocal'
 import { fetchEmployees } from './employees'
 import { buildTaskCenterForAuth } from '@/utils/employeeTasks'
@@ -28,9 +38,77 @@ function filterByStoreIds(items, storeIds) {
   return (items || []).filter((item) => set.has(item.storeId))
 }
 
-/** 统一运营上下文：账户绑定 → 店铺 → 员工 → 各平台运营数据 → 总览 */
-export async function loadOperationsOverview(auth = null) {
-  const [temuStoresRes, aeStoresRes, walmartStoresRes, pddStoresRes, douyinStoresRes, channelsStoresRes, amazonStoresRes, stores1688Res, dtcStoresRes, employeesRes] = await Promise.all([
+/** 账户绑定店铺 + 爬虫 shop_id 合并，便于总览展示运营数据 */
+function mergeTemuStoresForOverview(boundStores, products) {
+  const stores = [...(boundStores || [])]
+  const knownIds = new Set(stores.map((store) => store.id))
+  for (const product of products || []) {
+    if (!product.storeId || knownIds.has(product.storeId)) continue
+    knownIds.add(product.storeId)
+    stores.push({
+      id: product.storeId,
+      storeName: product.owner || product.storeId,
+      platform: 'temu',
+    })
+  }
+  return stores
+}
+
+async function loadTemuProducts(auth, boundStores) {
+  if (canUseTemuBackend(auth) && boundStores.length) {
+    try {
+      const shopIds = boundStores
+        .flatMap((store) => [store.externalShopId, store.id].filter(Boolean))
+      const op = await fetchTemuOperationalData({})
+      let products = op.products || []
+      if (shopIds.length) {
+        const allowed = new Set(shopIds)
+        const filtered = products.filter((p) => allowed.has(p.storeId))
+        products = filtered.length ? filtered : products
+      }
+      return products
+    } catch {
+      return []
+    }
+  }
+  const temuStoreIds = boundStores.map((store) => store.id)
+  return enrichAllProducts(filterByStoreIds(TEMU_PRODUCTS_RAW, temuStoreIds))
+}
+
+function filterStoresByPlatform(stores, platform) {
+  const key = String(platform || '').toLowerCase()
+  return (stores || []).filter((store) => String(store.platform || '').toLowerCase() === key)
+}
+
+async function loadBoundStoresByPlatform(auth) {
+  const demoMode = !hasBackendSession(auth)
+  if (!demoMode) {
+    const res = await fetchAllPlatformStores()
+    const all = scopeStores(res.data || [], auth)
+    return {
+      temu: await fetchTemuStores(auth),
+      aliexpress: filterStoresByPlatform(all, 'aliexpress'),
+      walmart: filterStoresByPlatform(all, 'walmart'),
+      pdd: filterStoresByPlatform(all, 'pdd'),
+      douyin: filterStoresByPlatform(all, 'douyin'),
+      channels: filterStoresByPlatform(all, 'channels'),
+      amazon: filterStoresByPlatform(all, 'amazon'),
+      '1688': filterStoresByPlatform(all, '1688'),
+      dtc: all.filter((store) => DTC_PLATFORMS.includes(String(store.platform || '').toLowerCase())),
+    }
+  }
+
+  const [
+    temuStoresRes,
+    aeStoresRes,
+    walmartStoresRes,
+    pddStoresRes,
+    douyinStoresRes,
+    channelsStoresRes,
+    amazonStoresRes,
+    stores1688Res,
+    dtcStoresRes,
+  ] = await Promise.all([
     fetchPlatformStores('temu'),
     fetchAliExpressStores(),
     fetchWalmartStores(),
@@ -40,19 +118,43 @@ export async function loadOperationsOverview(auth = null) {
     fetchAmazonStores(),
     fetchAlibaba1688Stores(),
     fetchDtcStores(),
+  ])
+
+  return {
+    temu: scopeStores(temuStoresRes.data || [], auth),
+    aliexpress: scopeStores(aeStoresRes.data || [], auth),
+    walmart: scopeStores(walmartStoresRes.data || [], auth),
+    pdd: scopeStores(pddStoresRes.data || [], auth),
+    douyin: scopeStores(douyinStoresRes.data || [], auth),
+    channels: scopeStores(channelsStoresRes.data || [], auth),
+    amazon: scopeStores(amazonStoresRes.data || [], auth),
+    '1688': scopeStores(stores1688Res.data || [], auth),
+    dtc: scopeStores(dtcStoresRes.data || [], auth),
+  }
+}
+
+/** 统一运营上下文：账户绑定 → 店铺 → 员工 → 各平台运营数据 → 总览 */
+export async function loadOperationsOverview(auth = null) {
+  const [storeMap, employeesRes] = await Promise.all([
+    loadBoundStoresByPlatform(auth),
     fetchEmployees(auth),
   ])
 
   const employees = employeesRes.data || []
-  let temuStores = scopeStores(temuStoresRes.data || [], auth)
-  let aeStores = scopeStores(aeStoresRes.data || [], auth)
-  let walmartStores = scopeStores(walmartStoresRes.data || [], auth)
-  let pddStores = scopeStores(pddStoresRes.data || [], auth)
-  let douyinStores = scopeStores(douyinStoresRes.data || [], auth)
-  let channelsStores = scopeStores(channelsStoresRes.data || [], auth)
-  let amazonStores = scopeStores(amazonStoresRes.data || [], auth)
-  let stores1688 = scopeStores(stores1688Res.data || [], auth)
-  let dtcStores = scopeStores(dtcStoresRes.data || [], auth)
+  const demoMode = !hasBackendSession(auth)
+  let temuStores = storeMap.temu || []
+  let temuProducts = await loadTemuProducts(auth, temuStores)
+  if (canUseTemuBackend(auth)) {
+    temuStores = mergeTemuStoresForOverview(temuStores, temuProducts)
+  }
+  const aeStores = storeMap.aliexpress || []
+  const walmartStores = storeMap.walmart || []
+  const pddStores = storeMap.pdd || []
+  const douyinStores = storeMap.douyin || []
+  const channelsStores = storeMap.channels || []
+  const amazonStores = storeMap.amazon || []
+  const stores1688 = storeMap['1688'] || []
+  const dtcStores = storeMap.dtc || []
 
   const temuStoreIds = temuStores.map((store) => store.id)
   const aeStoreIds = aeStores.map((store) => store.id)
@@ -64,91 +166,98 @@ export async function loadOperationsOverview(auth = null) {
   const stores1688Ids = stores1688.map((store) => store.id)
   const dtcStoreIds = dtcStores.map((store) => store.id)
 
-  const temuProducts = enrichAllProducts(
-    filterByStoreIds(TEMU_PRODUCTS_RAW, temuStoreIds),
-  )
+  const temuProductsFinal = temuProducts
+  const temuRestockStatus = demoMode
+    ? getTemuRestockStatusMap()
+    : await loadTemuRestockStatusMap(auth)
 
-  if (dtcStores.length) {
+  if (demoMode && dtcStores.length) {
     ensureDtcOrdersDemo(dtcStores)
   }
 
-  if (aeStores.length) {
+  if (demoMode && aeStores.length) {
     ensureAliexpressDemoData(aeStores)
   }
 
-  if (amazonStores.length) {
+  if (demoMode && amazonStores.length) {
     ensureAmazonDailyData(amazonStores)
   }
 
-  const aeOrders = aeStores.length
+  const aeOrders = demoMode && aeStores.length
     ? filterByStoreIds(loadCachedAliExpressOrders(aeStores).data.orders, aeStoreIds)
-    : []
-  const aeViolations = aeStores.length
-    ? filterByStoreIds(loadAliExpressViolations(aeStores).data.violations, aeStoreIds)
-    : []
+    : canUseAliExpressBackend(auth) && aeStores.length
+      ? filterByStoreIds((await fetchTodayAliExpressOrdersFromApi()).orders || [], aeStoreIds)
+      : []
+  const aeViolations = demoMode && aeStores.length
+    ? filterByStoreIds((await loadAliExpressViolations(aeStores, auth)).data.violations, aeStoreIds)
+    : canUseAliExpressBackend(auth) && aeStores.length
+      ? filterByStoreIds((await loadAliExpressViolationsFromApi()).violations || [], aeStoreIds)
+      : []
 
-  const wmOrders = walmartStores.length
+  const wmOrders = demoMode && walmartStores.length
     ? filterByStoreIds(loadCachedWalmartOrders(walmartStores).data.orders, walmartStoreIds)
     : []
-  const wmIssues = walmartStores.length
+  const wmIssues = demoMode && walmartStores.length
     ? filterByStoreIds(
         loadWalmartListingIssues(walmartStores).data.issues.map((issue) => enrichListingIssue(issue)),
         walmartStoreIds,
       )
     : []
 
-  const pddOrders = pddStores.length
+  const pddOrders = demoMode && pddStores.length
     ? filterByStoreIds(loadCachedPddOrders(pddStores).data.orders, pddStoreIds)
     : []
-  const pddIssues = pddStores.length
+  const pddIssues = demoMode && pddStores.length
     ? filterByStoreIds(
         loadPddIssues(pddStores).data.issues.map((issue) => enrichDomesticIssue(issue, PDD_ISSUE_TYPES)),
         pddStoreIds,
       )
     : []
 
-  const douyinOrders = douyinStores.length
+  const douyinOrders = demoMode && douyinStores.length
     ? filterByStoreIds(loadCachedDouyinOrders(douyinStores).data.orders, douyinStoreIds)
     : []
-  const douyinIssues = douyinStores.length
+  const douyinIssues = demoMode && douyinStores.length
     ? filterByStoreIds(
         loadDouyinIssues(douyinStores).data.issues.map((issue) => enrichDomesticIssue(issue, DOUYIN_ISSUE_TYPES)),
         douyinStoreIds,
       )
     : []
 
-  const channelsOrders = channelsStores.length
+  const channelsOrders = demoMode && channelsStores.length
     ? filterByStoreIds(loadCachedChannelsOrders(channelsStores).data.orders, channelsStoreIds)
     : []
-  const channelsIssues = channelsStores.length
+  const channelsIssues = demoMode && channelsStores.length
     ? filterByStoreIds(
         loadChannelsIssues(channelsStores).data.issues.map((issue) => enrichDomesticIssue(issue, CHANNELS_ISSUE_TYPES)),
         channelsStoreIds,
       )
     : []
 
-  const amazonDaily = amazonStores.length
-    ? loadAmazonDailyWorkflow(amazonStores).data
-    : {
-        buyerMessages: [],
-        accountMetrics: [],
-        reviews: [],
-        coupons: [],
-        sellerNews: [],
-        shipments: [],
-        cases: [],
-      }
+  const amazonDaily = demoMode && amazonStores.length
+    ? (await loadAmazonDailyWorkflow(amazonStores)).data
+    : hasBackendSession(auth) && amazonStores.length
+      ? (await fetchAmazonDailyFromBackend(amazonStores)).data
+      : {
+          buyerMessages: [],
+          accountMetrics: [],
+          reviews: [],
+          coupons: [],
+          sellerNews: [],
+          shipments: [],
+          cases: [],
+        }
 
-  const demo1688 = stores1688.length ? loadAlibaba1688DemoData(stores1688) : { purchaseOrders: [], supplierAlerts: [] }
+  const demo1688 = demoMode && stores1688.length ? loadAlibaba1688DemoData(stores1688) : { purchaseOrders: [], supplierAlerts: [] }
   const purchaseOrders = filterByStoreIds(demo1688.purchaseOrders, stores1688Ids)
   const supplierAlerts = filterByStoreIds(demo1688.supplierAlerts, stores1688Ids)
 
-  const dtcOrders = filterByStoreIds(loadDtcTodayOrders(dtcStores), dtcStoreIds)
+  const dtcOrders = demoMode ? filterByStoreIds(loadDtcTodayOrders(dtcStores), dtcStoreIds) : []
 
   const temuPayload = {
     stores: temuStores,
-    products: temuProducts,
-    restockStatus: getTemuRestockStatusMap(),
+    products: temuProductsFinal,
+    restockStatus: temuRestockStatus,
   }
   const aliexpressPayload = {
     stores: aeStores,
@@ -234,13 +343,14 @@ export async function loadOperationsOverview(auth = null) {
     employees,
   })
 
-  const tasks = buildTaskCenterForAuth(
+  const tasks = await buildTaskCenterForAuth(
     { platforms: overview.platforms, totalIssues: overview.totalIssues, syncedAt: overview.syncedAt },
     auth,
     employees,
-  )
+  ).catch(() => [])
 
-  const feedbacks = loadTodayOpsFeedback().data
+  const feedbacksRes = await loadTodayOpsFeedback({}, auth).catch(() => ({ data: [] }))
+  const feedbacks = feedbacksRes.data || []
   const dailyReport = auth?.isBoss
     ? buildDailyOpsReport({
         overview,

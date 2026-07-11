@@ -6,6 +6,8 @@ import {
 } from './warehouseOrdersLocal'
 import {
   buildWarehouseFeedbackPatch,
+  find1688PlatformOrder,
+  findDomesticPlatformOrder,
   update1688PlatformOrder,
   updateDomesticPlatformOrder,
 } from './platformOrderWarehouseSync'
@@ -109,31 +111,18 @@ export function enrichOrdersWithWarehouseFeedback(orders = []) {
 
 export function syncPlatformOrderWarehouseStatus(platformKey, orderId) {
   if (platformKey === '1688') {
-    const raw = localStorage.getItem('crosshub_1688_demo')
-    const data = raw ? JSON.parse(raw) : { purchaseOrders: [] }
-    const order = data.purchaseOrders.find((item) => item.id === orderId)
+    const order = find1688PlatformOrder(orderId)
     if (!order?.warehouseOrderId) return order
     const wh = fetchLocalWarehouseOrderById(order.warehouseOrderId)
     if (!wh) return order
     const patch = buildWarehouseFeedbackPatch(wh)
-    return patch ? update1688Order(orderId, patch) : order
+    return patch ? update1688PlatformOrder(orderId, patch) : order
   }
 
-  const storageKey = PLATFORM_ORDER_STORAGE_KEYS[platformKey]
-  if (!storageKey) return null
-
-  try {
-    const raw = localStorage.getItem(storageKey)
-    const state = raw ? JSON.parse(raw) : { items: [] }
-    const order = state.items.find((item) => item.id === orderId)
-    if (!order?.warehouseOrderId) return order
-
-    const wh = fetchLocalWarehouseOrderById(order.warehouseOrderId)
-    if (!wh) return order
-
-    const patch = buildWarehouseFeedbackPatch(wh)
-    return patch ? updateDomesticOrder(platformKey, orderId, patch) : order
-  } catch {
-    return null
-  }
+  const order = findDomesticPlatformOrder(platformKey, orderId)
+  if (!order?.warehouseOrderId) return order
+  const wh = fetchLocalWarehouseOrderById(order.warehouseOrderId)
+  if (!wh) return order
+  const patch = buildWarehouseFeedbackPatch(wh)
+  return patch ? updateDomesticPlatformOrder(platformKey, orderId, patch) : order
 }

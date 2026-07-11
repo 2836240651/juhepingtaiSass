@@ -2,29 +2,26 @@ import {
   WAREHOUSE_SITES_SEED,
   WAREHOUSE_SITES_STORAGE_KEY,
 } from '@/constants/warehouseSites'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(WAREHOUSE_SITES_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, WAREHOUSE_SITES_STORAGE_KEY, []) || []
 }
 
-function saveAll(sites) {
-  localStorage.setItem(WAREHOUSE_SITES_STORAGE_KEY, JSON.stringify(sites))
+function saveAll(sites, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, WAREHOUSE_SITES_STORAGE_KEY, sites)
 }
 
 function createId() {
   return `wh_site_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-export function ensureDemoWarehouseSites() {
-  const existing = loadAll()
+export function ensureDemoWarehouseSites(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  const existing = loadAll(tenantId)
   const seedById = Object.fromEntries(WAREHOUSE_SITES_SEED.map((item) => [item.id, item]))
   const custom = existing.filter((item) => !seedById[item.id])
-  saveAll([...custom, ...WAREHOUSE_SITES_SEED.map((item) => ({ ...item }))])
+  saveAll([...custom, ...WAREHOUSE_SITES_SEED.map((item) => ({ ...item }))], tenantId)
 }
 
 export function fetchLocalWarehouseSites({ activeOnly = false } = {}) {

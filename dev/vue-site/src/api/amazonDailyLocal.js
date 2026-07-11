@@ -1,3 +1,4 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   ACCOUNT_METRICS_SEED,
   BUYER_MESSAGES_SEED,
@@ -21,17 +22,13 @@ const EMPTY = {
   syncedAt: '',
 }
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? { ...EMPTY, ...JSON.parse(raw) } : { ...EMPTY }
-  } catch {
-    return { ...EMPTY }
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  const data = loadScoped(tenantId, STORAGE_KEY, null)
+  return data ? { ...EMPTY, ...data } : { ...EMPTY }
 }
 
-function saveAll(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function saveAll(data, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, data)
 }
 
 function nowText() {

@@ -1,10 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { OPERATION_TASKS, TASK_STATUS_META, TASK_STATUS_OPTIONS } from '@/constants/operations'
+import { TASK_STATUS_META, TASK_STATUS_OPTIONS } from '@/constants/operations'
 import { calcTaskStats, groupTasksByAssignee } from '@/utils/operations'
 
 const props = defineProps({
-  tasks: { type: Array, default: () => OPERATION_TASKS },
+  tasks: { type: Array, default: () => [] },
 })
 
 const statusFilter = ref('全部')

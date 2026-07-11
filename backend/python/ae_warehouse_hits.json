@@ -1,0 +1,177 @@
+[
+  {
+    "url": "https://guide.aliexpress.com/v2/api/guide/all?biz=AE&url=https%3A%2F%2Fcsp.aliexpress.com%2Fm_apps%2Fascp%2Faechoice.purchase_stockup_for_aechoice",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 0
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.merchant.menu.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783481010188&sign=1e355293c64cc8bccb97383699c9c974&type=originaljson&api=mtop.csp.merchant.menu.get&v=1.0&dataType=json&__channel-id__=2078391&data=%7B%22url%22%3A%22%2Fm_apps%2Fascp%2Faechoice.purchase_stockup_for_aechoice%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 4
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.yoda.web.show.yoda/1.0/?jsv=2.7.2&appKey=12574478&t=1783481010189&sign=430cefc3cfe22a044fe239af1911a769&type=originaljson&api=mtop.csp.yoda.web.show.yoda&v=1.0&dataType=json&__channel-id__=2078391&data=%7B%22url%22%3A%22%2Fm_apps%2Fascp%2Faechoice.purchase_stockup_for_aechoice%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.cco.intl.consultation.widget.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783481010189&sign=e63104329c7df63e2bebee9dd072d916&type=originaljson&api=mtop.aliexpress.cco.intl.consultation.widget.get&v=1.0&dataType=json&__channel-id__=2078391&data=%7B%22url%22%3A%22https%3A%2F%2Fcsp.aliexpress.com%2Fm_apps%2Fascp%2Faechoice.purchase_stockup_for_aechoice%3FchannelId%3D2078391%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 2
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.seller.iopnotify.defence.pull/1.0/?jsv=2.7.2&appKey=30267743&t=1783481010188&sign=1777263027d2af0edd0fdfccf142fc2e&v=1.0&timeout=30000&H5Request=true&url=mtop.aliexpress.seller.iopnotify.defence.pull&__channel-id__=2078391&api=mtop.aliexpress.seller.iopnotify.defence.pull&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22pageName%22%3A%22%2Fm_apps%2Fascp%2Faechoice.purchase_stockup_for_aechoice%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 2
+  },
+  {
+    "url": "https://seller-acs.aliexpress.com/h5/mtop.aliexpress.seller.iopnotify.popup.pull/1.0/?jsv=2.7.2&appKey=30267743&t=1783481011341&sign=a3a77385d407a3682f2161eda49cdd1c&v=1.0&timeout=30000&H5Request=true&url=mtop.aliexpress.seller.iopnotify.popup.pull&__channel-id__=2078391&api=mtop.aliexpress.seller.iopnotify.popup.pull&type=originaljson&dataType=json&valueType=original&x-i18n-regionID=AE&data=%7B%22pageName%22%3A%22%2Fm_apps%2Fascp%2Faechoice.purchase_stockup_for_aechoice%22%7D",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 2
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/common/queryIsGray?grayCode=supplier_admin_webapi",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-ascm-api-configer/webapi/ascmKV/queryDict?group=aidc.dict.purchase.order.replenishScene",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 5
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-ascm-api-configer/webapi/ascmKV/queryDict?group=aidc.dict.purchase.order.scmItem.bandCode",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 6
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/common/queryMigrateFromFbae",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-ascm-api-configer/webapi/ascmKV/queryDict?group=aidc.dict.purchase.order.scmItem.tags",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 3
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/replenishment/queryConfig?query.configCodeList=selfRepl",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 1
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/common/queryWarehouseList?businessMode=WAREHOUSE_SHIPPING&storeCodeOrName=",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 47
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseOrders?bizStatusList=10&bizStatusList=15&bizStatusList=16&bizStatusList=20&bizStatusList=25&bizStatusList=30&bizStatusList=101&pageIndex=1&pageSize=10&poTypeList=10&poTypeList=60&poTypeList=70&sortByScItemId=true",
+    "method": "GET",
+    "post": "",
+    "totalCount": 0,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseOrders?bizStatusList=10&bizStatusList=15&bizStatusList=16&bizStatusList=20&bizStatusList=25&bizStatusList=30&bizStatusList=101&fromSource=repListPage&gmtCreateLeft=2026-06-08%2000%3A00%3A00&gmtCreateRight=2026-07-08%2023%3A59%3A59&pageIndex=1&pageSize=10&poTypeList=10&poTypeList=60&poTypeList=70&sortByScItemId=true",
+    "method": "GET",
+    "post": "",
+    "totalCount": 0,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseListTotalCount?query.poTypeList=10&query.poTypeList=60&query.poTypeList=70&queryList%5B0%5D.bizStatusList=10&queryList%5B0%5D.bizStatusList=15&queryList%5B0%5D.bizStatusList=16&queryList%5B0%5D.bizStatusList=20&queryList%5B0%5D.bizStatusList=25&queryList%5B0%5D.bizStatusList=30&queryList%5B0%5D.bizStatusList=101&queryList%5B0%5D.queryKey=Uncompleted&queryList%5B1%5D.bizStatusList=10&queryList%5B1%5D.bizStatusList=101&queryList%5B1%5D.queryKey=PendingOrder&queryList%5B2%5D.bizStatusList=101&queryList%5B2%5D.queryKey=PendingStaffApprove&queryList%5B3%5D.bizStatusList=15&queryList%5B3%5D.bizStatusList=16&queryList%5B3%5D.bizStatusList=20&queryList%5B3%5D.bizStatusList=25&queryList%5B3%5D.bizStatusList=30&queryList%5B3%5D.deliveryFinish=false&queryList%5B3%5D.queryKey=PendingSent&queryList%5B4%5D.bizStatusList=15&queryList%5B4%5D.bizStatusList=16&queryList%5B4%5D.bizStatusList=20&queryList%5B4%5D.bizStatusList=25&queryList%5B4%5D.deliveryFinish=true&queryList%5B4%5D.queryKey=PendingList&queryList%5B5%5D.bizStatusList=30&queryList%5B5%5D.deliveryFinish=true&queryList%5B5%5D.queryKey=PartialList&queryList%5B6%5D.bizStatusList=40&queryList%5B6%5D.queryKey=Completed&queryList%5B7%5D.bizStatusList=-99&queryList%5B7%5D.bizStatusList=50&queryList%5B7%5D.bizStatusList=-11&queryList%5B7%5D.queryKey=Closed",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 8
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseListTotalCount?query.fromSource=repListPage&query.gmtCreateLeft=2026-06-08%2000%3A00%3A00&query.gmtCreateRight=2026-07-08%2023%3A59%3A59&query.poTypeList=10&query.poTypeList=60&query.poTypeList=70&queryList%5B0%5D.bizStatusList=10&queryList%5B0%5D.bizStatusList=15&queryList%5B0%5D.bizStatusList=16&queryList%5B0%5D.bizStatusList=20&queryList%5B0%5D.bizStatusList=25&queryList%5B0%5D.bizStatusList=30&queryList%5B0%5D.bizStatusList=101&queryList%5B0%5D.queryKey=Uncompleted&queryList%5B1%5D.bizStatusList=10&queryList%5B1%5D.bizStatusList=101&queryList%5B1%5D.queryKey=PendingOrder&queryList%5B2%5D.bizStatusList=101&queryList%5B2%5D.queryKey=PendingStaffApprove&queryList%5B3%5D.bizStatusList=15&queryList%5B3%5D.bizStatusList=16&queryList%5B3%5D.bizStatusList=20&queryList%5B3%5D.bizStatusList=25&queryList%5B3%5D.bizStatusList=30&queryList%5B3%5D.deliveryFinish=false&queryList%5B3%5D.queryKey=PendingSent&queryList%5B4%5D.bizStatusList=15&queryList%5B4%5D.bizStatusList=16&queryList%5B4%5D.bizStatusList=20&queryList%5B4%5D.bizStatusList=25&queryList%5B4%5D.deliveryFinish=true&queryList%5B4%5D.queryKey=PendingList&queryList%5B5%5D.bizStatusList=30&queryList%5B5%5D.deliveryFinish=true&queryList%5B5%5D.queryKey=PartialList&queryList%5B6%5D.bizStatusList=40&queryList%5B6%5D.queryKey=Completed&queryList%5B7%5D.bizStatusList=-99&queryList%5B7%5D.bizStatusList=50&queryList%5B7%5D.bizStatusList=-11&queryList%5B7%5D.queryKey=Closed",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 8
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/common/supplier/queryIsGray?grayCode=digitalHumanGray",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-ib-web-f/purchase/supplier/queryGroupShippingConfig",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseOrders?bizStatusList=10&bizStatusList=15&bizStatusList=16&bizStatusList=20&bizStatusList=25&bizStatusList=30&bizStatusList=101&fromSource=repListPage&gmtCreateLeft=2026-06-08%2000%3A00%3A00&gmtCreateRight=2026-07-08%2023%3A59%3A59&pageIndex=1&pageSize=10&poTypeList=10&poTypeList=60&poTypeList=70&sortByScItemId=true",
+    "method": "GET",
+    "post": "",
+    "totalCount": 0,
+    "data_len": 0
+  },
+  {
+    "url": "https://dchain-base-service.aliexpress.com/magent/config/queryAssistantConfig?pagePath=purchase_stockup_for_aechoice&tenantId=aechoice",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 6
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseListTotalCount?query.fromSource=repListPage&query.gmtCreateLeft=2026-06-08%2000%3A00%3A00&query.gmtCreateRight=2026-07-08%2023%3A59%3A59&query.poTypeList=10&query.poTypeList=60&query.poTypeList=70&queryList%5B0%5D.bizStatusList=10&queryList%5B0%5D.bizStatusList=15&queryList%5B0%5D.bizStatusList=16&queryList%5B0%5D.bizStatusList=20&queryList%5B0%5D.bizStatusList=25&queryList%5B0%5D.bizStatusList=30&queryList%5B0%5D.bizStatusList=101&queryList%5B0%5D.queryKey=Uncompleted&queryList%5B1%5D.bizStatusList=10&queryList%5B1%5D.bizStatusList=101&queryList%5B1%5D.queryKey=PendingOrder&queryList%5B2%5D.bizStatusList=101&queryList%5B2%5D.queryKey=PendingStaffApprove&queryList%5B3%5D.bizStatusList=15&queryList%5B3%5D.bizStatusList=16&queryList%5B3%5D.bizStatusList=20&queryList%5B3%5D.bizStatusList=25&queryList%5B3%5D.bizStatusList=30&queryList%5B3%5D.deliveryFinish=false&queryList%5B3%5D.queryKey=PendingSent&queryList%5B4%5D.bizStatusList=15&queryList%5B4%5D.bizStatusList=16&queryList%5B4%5D.bizStatusList=20&queryList%5B4%5D.bizStatusList=25&queryList%5B4%5D.deliveryFinish=true&queryList%5B4%5D.queryKey=PendingList&queryList%5B5%5D.bizStatusList=30&queryList%5B5%5D.deliveryFinish=true&queryList%5B5%5D.queryKey=PartialList&queryList%5B6%5D.bizStatusList=40&queryList%5B6%5D.queryKey=Completed&queryList%5B7%5D.bizStatusList=-99&queryList%5B7%5D.bizStatusList=50&queryList%5B7%5D.bizStatusList=-11&queryList%5B7%5D.queryKey=Closed",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 8
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseOrders?bizStatusList=10&bizStatusList=15&bizStatusList=16&bizStatusList=20&bizStatusList=25&bizStatusList=30&bizStatusList=101&fromSource=repListPage&gmtCreateLeft=2026-06-08%2000%3A00%3A00&gmtCreateRight=2026-07-08%2023%3A59%3A59&pageIndex=1&pageSize=10&poTypeList=10&poTypeList=60&poTypeList=70&sortByScItemId=true",
+    "method": "GET",
+    "post": "",
+    "totalCount": 0,
+    "data_len": 0
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/webapi/purchase/queryPurchaseListTotalCount?query.fromSource=repListPage&query.gmtCreateLeft=2026-06-08%2000%3A00%3A00&query.gmtCreateRight=2026-07-08%2023%3A59%3A59&query.poTypeList=10&query.poTypeList=60&query.poTypeList=70&queryList%5B0%5D.bizStatusList=10&queryList%5B0%5D.bizStatusList=15&queryList%5B0%5D.bizStatusList=16&queryList%5B0%5D.bizStatusList=20&queryList%5B0%5D.bizStatusList=25&queryList%5B0%5D.bizStatusList=30&queryList%5B0%5D.bizStatusList=101&queryList%5B0%5D.queryKey=Uncompleted&queryList%5B1%5D.bizStatusList=10&queryList%5B1%5D.bizStatusList=101&queryList%5B1%5D.queryKey=PendingOrder&queryList%5B2%5D.bizStatusList=101&queryList%5B2%5D.queryKey=PendingStaffApprove&queryList%5B3%5D.bizStatusList=15&queryList%5B3%5D.bizStatusList=16&queryList%5B3%5D.bizStatusList=20&queryList%5B3%5D.bizStatusList=25&queryList%5B3%5D.bizStatusList=30&queryList%5B3%5D.deliveryFinish=false&queryList%5B3%5D.queryKey=PendingSent&queryList%5B4%5D.bizStatusList=15&queryList%5B4%5D.bizStatusList=16&queryList%5B4%5D.bizStatusList=20&queryList%5B4%5D.bizStatusList=25&queryList%5B4%5D.deliveryFinish=true&queryList%5B4%5D.queryKey=PendingList&queryList%5B5%5D.bizStatusList=30&queryList%5B5%5D.deliveryFinish=true&queryList%5B5%5D.queryKey=PartialList&queryList%5B6%5D.bizStatusList=40&queryList%5B6%5D.queryKey=Completed&queryList%5B7%5D.bizStatusList=-99&queryList%5B7%5D.bizStatusList=50&queryList%5B7%5D.bizStatusList=-11&queryList%5B7%5D.queryKey=Closed",
+    "method": "GET",
+    "post": "",
+    "totalCount": null,
+    "data_len": 8
+  },
+  {
+    "url": "https://scm-supplier.aliexpress.com/aidc-procurement/purchase/notice/hasSupplierNotice",
+    "method": "POST",
+    "post": "{\"_scm_token_\":\"QcaRZWQ0NMDtqjTFcKbV8OZEts4\"}",
+    "totalCount": null,
+    "data_len": 1
+  }
+]

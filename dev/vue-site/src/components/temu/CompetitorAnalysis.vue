@@ -1,10 +1,14 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Link, Refresh, Search, Setting } from '@element-plus/icons-vue'
+import { Download, Link, Refresh, Search, Setting } from '@element-plus/icons-vue'
+import SearchableTable from '@/components/common/SearchableTable.vue'
+import { resolveAppError } from '@/utils/appErrorCode'
 import {
   analyzeCompetitors,
   deleteCompetitor,
+  discoverCompetitors,
+  exportCompetitorReport,
   fetchCompetitorReports,
   fetchCompetitors,
   saveCompetitor,
@@ -16,9 +20,16 @@ defineProps({
 
 const loading = ref(false)
 const analyzing = ref(false)
+const discovering = ref(false)
 const competitors = ref([])
 const reports = ref([])
 const settingsOpen = ref(true)
+const analysisError = ref(null)
+const discoveryCandidates = ref([])
+const selectingCandidateUrl = ref('')
+const exportingReportId = ref('')
+const reportPollingGeneration = ref(0)
+const reportPollingTimer = ref(0)
 
 const form = reactive({
   id: '',
@@ -32,6 +43,43 @@ function resetForm() {
   form.url = ''
 }
 
+function hasActiveReport(report) {
+  return ['pending', 'running'].includes(report?.latestJobStatus)
+}
+
+function clearReportPollingTimer() {
+  if (reportPollingTimer.value) {
+    window.clearTimeout(reportPollingTimer.value)
+    reportPollingTimer.value = 0
+  }
+}
+
+function stopReportPolling() {
+  reportPollingGeneration.value += 1
+  clearReportPollingTimer()
+}
+
+function summarizeReports(reportList = []) {
+  return reportList.reduce(
+    (summary, report) => {
+      if (report.latestJobStatus === 'failed') summary.failed += 1
+      summary.newToday += Number(report.summary?.newToday || 0)
+      summary.salesSpikes += Number(report.summary?.salesSpikes || 0)
+      return summary
+    },
+    { failed: 0, newToday: 0, salesSpikes: 0 },
+  )
+}
+
+function notifyAnalysisOutcome(reportList = reports.value) {
+  const summary = summarizeReports(reportList)
+  if (summary.failed > 0) {
+    ElMessage.warning(`状态已同步，其中 ${summary.failed} 个竞店抓取失败，请查看卡片失败原因`)
+    return
+  }
+  ElMessage.success(`爬取完成：发现 ${summary.newToday} 个今日上新，${summary.salesSpikes} 个销量异常`)
+}
+
 async function loadCompetitors() {
   loading.value = true
   try {
@@ -41,56 +89,6 @@ async function loadCompetitors() {
     competitors.value = []
   } finally {
     loading.value = false
-  }
-}
-
-function editCompetitor(row) {
-  form.id = row.id
-  form.label = row.label
-  form.url = row.url
-  settingsOpen.value = true
-}
-
-async function submitCompetitor() {
-  if (!form.label.trim()) {
-    ElMessage.warning('请填写店铺备注名称')
-    return
-  }
-  if (!form.url.trim()) {
-    ElMessage.warning('请填写竞争对手店铺网址')
-    return
-  }
-
-  loading.value = true
-  try {
-    await saveCompetitor({
-      id: form.id || undefined,
-      label: form.label.trim(),
-      url: form.url.trim(),
-    })
-    ElMessage.success(form.id ? '已更新竞争对手' : '已添加竞争对手')
-    resetForm()
-    await loadCompetitors()
-  } catch (err) {
-    ElMessage.error(err.message || '保存失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-async function removeCompetitor(row) {
-  try {
-    await ElMessageBox.confirm(`确定移除竞争对手「${row.label}」？历史爬取数据将一并删除。`, '确认', {
-      type: 'warning',
-      confirmButtonText: '移除',
-      cancelButtonText: '取消',
-    })
-    await deleteCompetitor(row.id)
-    reports.value = reports.value.filter((item) => item.id !== row.id)
-    ElMessage.success('已移除')
-    await loadCompetitors()
-  } catch {
-    // cancelled
   }
 }
 
@@ -106,33 +104,259 @@ async function loadReports() {
   }
 }
 
+async function pollReportsUntilSettled({ maxAttempts = 20, delayMs = 3000, notifyOnSettle = false } = {}) {
+  const generation = reportPollingGeneration.value + 1
+  reportPollingGeneration.value = generation
+  clearReportPollingTimer()
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => {
+        reportPollingTimer.value = window.setTimeout(resolve, delayMs)
+      })
+      if (reportPollingGeneration.value !== generation) return
+    }
+
+    await loadReports()
+    if (reportPollingGeneration.value !== generation) return
+
+    if (!reports.value.some(hasActiveReport)) {
+      clearReportPollingTimer()
+      if (notifyOnSettle) notifyAnalysisOutcome(reports.value)
+      return
+    }
+  }
+
+  clearReportPollingTimer()
+  if (notifyOnSettle) {
+    ElMessage.warning('任务仍在执行中，可稍后刷新页面查看最终结果')
+  }
+}
+
+function editCompetitor(row) {
+  form.id = row.id
+  form.label = row.label
+  form.url = row.url
+  settingsOpen.value = true
+}
+
+async function submitCompetitor() {
+  if (!form.label.trim()) {
+    ElMessage.warning('请填写店铺备注')
+    return
+  }
+  if (!form.url.trim()) {
+    ElMessage.warning('请填写竞店链接')
+    return
+  }
+
+  loading.value = true
+  try {
+    await saveCompetitor({
+      id: form.id || undefined,
+      label: form.label.trim(),
+      url: form.url.trim(),
+    })
+    ElMessage.success(form.id ? '竞店已更新' : '竞店已添加')
+    resetForm()
+    await loadCompetitors()
+    await loadReports()
+  } catch (err) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function removeCompetitor(row) {
+  try {
+    await ElMessageBox.confirm(`确定移除竞店「${row.label}」吗？相关抓取记录也会删除。`, '确认移除', {
+      type: 'warning',
+      confirmButtonText: '移除',
+      cancelButtonText: '取消',
+    })
+    await deleteCompetitor(row.id)
+    reports.value = reports.value.filter((item) => item.id !== row.id)
+    ElMessage.success('竞店已移除')
+    await loadCompetitors()
+    await loadReports()
+  } catch {
+    // ignore
+  }
+}
+
+async function discoverFishingCompetitors() {
+  discovering.value = true
+  analysisError.value = null
+  try {
+    const res = await discoverCompetitors({
+      keyword: 'fishing tackle',
+      region: 'za',
+      limit: 10,
+    })
+    discoveryCandidates.value = res.data?.candidates || []
+    if (!discoveryCandidates.value.length) {
+      ElMessage.warning('当前没有发现可抓取的渔具候选竞店')
+      return
+    }
+    ElMessage.success(`已发现 ${discoveryCandidates.value.length} 个候选竞店`)
+  } catch (err) {
+    analysisError.value = resolveAppError(
+      { errorCode: err.errorCode, message: err.message },
+      null,
+    )
+    ElMessage.error(analysisError.value.title || err.message || '候选竞店发现失败')
+  } finally {
+    discovering.value = false
+  }
+}
+
+async function selectCandidateAndAnalyze(candidate) {
+  if (!candidate?.crawlable) {
+    ElMessage.warning('该候选当前不可抓取，请选择其他候选')
+    return
+  }
+  selectingCandidateUrl.value = candidate.url
+  analysisError.value = null
+  try {
+    let target = competitors.value.find((item) => item.url === candidate.url)
+    if (!target) {
+      const saved = await saveCompetitor({
+        label: candidate.label,
+        url: candidate.url,
+      })
+      target = saved.data
+      await loadCompetitors()
+    }
+    const res = await analyzeCompetitors([target])
+    competitors.value = res.competitors || []
+    reports.value = res.data || []
+    if (!reports.value.length) {
+      ElMessage.warning('竞店已保存，但暂未生成分析结果')
+      return
+    }
+    if (reports.value.some(hasActiveReport)) {
+      ElMessage.info(`已入队抓取「${candidate.label}」，正在同步结果`)
+      void pollReportsUntilSettled({ notifyOnSettle: true })
+      return
+    }
+    notifyAnalysisOutcome(reports.value)
+  } catch (err) {
+    analysisError.value = resolveAppError(
+      { errorCode: err.errorCode, message: err.message },
+      null,
+    )
+    ElMessage.error(analysisError.value.title || err.message || '候选竞店分析失败')
+  } finally {
+    selectingCandidateUrl.value = ''
+  }
+}
+
 async function runAnalysis() {
   analyzing.value = true
+  analysisError.value = null
   try {
+    stopReportPolling()
     const res = await analyzeCompetitors(competitors.value)
     competitors.value = res.competitors || []
     reports.value = res.data || []
-    const totalNew = reports.value.reduce((s, r) => s + r.summary.newToday, 0)
-    const totalSpikes = reports.value.reduce((s, r) => s + r.summary.salesSpikes, 0)
     if (!reports.value.length) {
-      ElMessage.warning('未生成分析报告，请刷新页面后重试')
+      ElMessage.warning('未生成分析结果，请稍后重试')
       return
     }
-    ElMessage.success(`爬取完成：发现 ${totalNew} 个今日上新，${totalSpikes} 个销量异常`)
+    if (reports.value.some(hasActiveReport)) {
+      ElMessage.info('任务已入队，正在同步竞店抓取结果')
+      void pollReportsUntilSettled({ notifyOnSettle: true })
+      return
+    }
+    notifyAnalysisOutcome(reports.value)
   } catch (err) {
-    ElMessage.error(err.message || '分析失败')
+    analysisError.value = resolveAppError(
+      { errorCode: err.errorCode, message: err.message },
+      null,
+    )
+    ElMessage.error(analysisError.value.title || err.message || '分析失败')
   } finally {
     analyzing.value = false
   }
 }
 
-function severityType(severity) {
-  return severity === 'high' ? 'danger' : 'warning'
+async function handleExport(report) {
+  exportingReportId.value = report.id
+  try {
+    await exportCompetitorReport(report)
+    ElMessage.success('Excel 报表开始下载')
+  } catch (err) {
+    ElMessage.error(err.message || 'Excel 导出失败')
+  } finally {
+    exportingReportId.value = ''
+  }
+}
+
+function sourceTypeText(type) {
+  return type === 'shop' ? '店铺' : '候选源'
+}
+
+function sampleProductText(product) {
+  const price = Number(product.price || 0)
+  const priceText = price > 0 ? `¥${price.toFixed(2)}` : ''
+  const sales = Number(product.salesSignal || 0)
+  const salesText = sales > 0 ? `${sales} sold` : ''
+  return [product.name, priceText, salesText].filter(Boolean).join(' | ')
+}
+
+function jobStatusType(status) {
+  if (status === 'success') return 'success'
+  if (status === 'failed') return 'danger'
+  if (status === 'running') return 'warning'
+  return 'info'
+}
+
+function jobStatusText(status) {
+  if (status === 'success') return '已生成'
+  if (status === 'failed') return '抓取失败'
+  if (status === 'running') return '执行中'
+  if (status === 'pending') return '已入队'
+  return '待执行'
+}
+
+function jobErrorDisplay(row = {}) {
+  return resolveAppError(
+    { errorCode: row.error_code || row.errorCode, message: row.error_message || row.errorMessage },
+    null,
+  )
+}
+
+function reportCrawlDateText(report) {
+  return report.crawlDate || 'No snapshot'
+}
+
+function recentListingsEmptyText(report, backendMode) {
+  if (!backendMode) return '最近 7 天暂无新上架商品'
+  if (!report.snapshotCount) return 'No monitor snapshot yet'
+  return 'No recent-launch rows in current snapshot'
+}
+
+function salesSpikesEmptyText(report, backendMode) {
+  if (!backendMode) return '暂无销量异常商品'
+  if (!report.snapshotCount) return 'No monitor snapshot yet'
+  return 'No sales-outlier rows in current snapshot'
+}
+
+function canExportReport(report) {
+  return Boolean(report?.artifacts?.report_xlsx_path)
 }
 
 onMounted(async () => {
   await loadCompetitors()
   await loadReports()
+  if (reports.value.some(hasActiveReport)) {
+    void pollReportsUntilSettled()
+  }
+})
+
+onBeforeUnmount(() => {
+  stopReportPolling()
 })
 </script>
 
@@ -143,9 +367,8 @@ onMounted(async () => {
       type="info"
       :closable="false"
       show-icon
-      title="竞店爬取尚未接入本项目 Python 爬虫"
-      description="当前竞店分析仍使用本地 Demo 数据；可在 backend/python 扩展竞店爬虫后，由 Java API 统一对外提供。"
-      style="margin-bottom: 16px"
+      title="竞店分析已接入后端保存"
+      description="支持页面直接查看竞店结果，也支持导出后端生成的 Excel 报表。"
     />
 
     <el-card shadow="never" class="settings-card">
@@ -154,7 +377,9 @@ onMounted(async () => {
           <el-space>
             <el-icon><Setting /></el-icon>
             <span>竞店设置</span>
-            <el-text size="small" type="info">系统每日自动爬取竞店商品，对比历史数据识别上新与销量异常</el-text>
+            <el-text size="small" type="info">
+              系统每日自动爬取竞店商品，对比历史数据识别上新与销量异常
+            </el-text>
           </el-space>
           <el-button text @click="settingsOpen = !settingsOpen">
             {{ settingsOpen ? '收起' : '展开' }}
@@ -163,6 +388,99 @@ onMounted(async () => {
       </template>
 
       <div v-show="settingsOpen">
+        <div class="discovery-panel">
+          <div class="discovery-head">
+            <div>
+              <strong>渔具 Top10 候选</strong>
+              <el-text size="small" type="info">
+                固定 Temu ZA，按前台搜索实时顺序发现可抓取候选
+              </el-text>
+            </div>
+            <el-button
+              type="primary"
+              plain
+              :icon="Search"
+              :loading="discovering"
+              @click="discoverFishingCompetitors"
+            >
+              发现渔具 Top10
+            </el-button>
+          </div>
+
+          <SearchableTable
+            v-if="discoveryCandidates.length"
+            :data="discoveryCandidates"
+            :fields="['label', 'url', 'host']"
+            placeholder="搜索候选名称 / 链接"
+            empty-text="暂无候选"
+            :page-size="10"
+            :page-sizes="[10, 20]"
+            size="small"
+            class="discovery-table"
+          >
+            <el-table-column label="排名" width="72" align="center">
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain">#{{ row.rank }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="候选名称" min-width="180" show-overflow-tooltip>
+              <template #default="{ row }">
+                <div class="candidate-name">
+                  <strong>{{ row.label }}</strong>
+                  <el-tag size="small" :type="row.sourceType === 'shop' ? 'success' : 'info'" effect="plain">
+                    {{ sourceTypeText(row.sourceType) }}
+                  </el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="样例商品" min-width="260">
+              <template #default="{ row }">
+                <div class="sample-products">
+                  <el-text size="small" type="info">
+                    {{ row.sampleProductCount }} 个样例
+                  </el-text>
+                  <div
+                    v-for="product in row.sampleProducts?.slice(0, 2)"
+                    :key="product.url || product.name"
+                    class="sample-product"
+                  >
+                    {{ sampleProductText(product) }}
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="链接" min-width="180" show-overflow-tooltip>
+              <template #default="{ row }">
+                <el-link :href="row.url" target="_blank" type="primary" :underline="false">
+                  {{ row.host || row.url }}
+                </el-link>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.crawlable ? 'success' : 'danger'" size="small">
+                  {{ row.crawlable ? '可抓取' : '不可抓取' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="140" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  link
+                  type="primary"
+                  :disabled="!row.crawlable"
+                  :loading="selectingCandidateUrl === row.url"
+                  @click="selectCandidateAndAnalyze(row)"
+                >
+                  选择并分析
+                </el-button>
+              </template>
+            </el-table-column>
+          </SearchableTable>
+        </div>
+
+        <el-divider content-position="left">手动添加竞店</el-divider>
+
         <el-form label-width="100px" class="settings-form" @submit.prevent="submitCompetitor">
           <el-form-item label="店铺备注">
             <el-input
@@ -176,7 +494,7 @@ onMounted(async () => {
           <el-form-item label="店铺网址">
             <el-input
               v-model="form.url"
-              placeholder="https://www.temu.com/xxx 或粘贴完整店铺链接"
+              placeholder="https://www.temu.com/xxx 或完整店铺链接"
               clearable
             >
               <template #prefix>
@@ -194,11 +512,14 @@ onMounted(async () => {
           </el-form-item>
         </el-form>
 
-        <el-table
+        <SearchableTable
           v-loading="loading"
           :data="competitors"
+          :fields="['label', 'url']"
+          placeholder="搜索备注 / 店铺链接"
+          empty-text="暂未添加竞店，请先补充店铺链接"
+          :page-size="10"
           size="small"
-          empty-text="暂未添加竞争对手，请在上方输入网址"
           class="competitor-table"
         >
           <el-table-column prop="label" label="备注名称" min-width="120" />
@@ -221,7 +542,7 @@ onMounted(async () => {
               <el-button link type="danger" @click="removeCompetitor(row)">移除</el-button>
             </template>
           </el-table-column>
-        </el-table>
+        </SearchableTable>
 
         <div class="settings-actions">
           <el-button
@@ -240,9 +561,25 @@ onMounted(async () => {
       </div>
     </el-card>
 
+    <el-alert
+      v-if="analysisError"
+      type="warning"
+      closable
+      show-icon
+      :title="analysisError.title"
+      @close="analysisError = null"
+    >
+      <template #default>
+        <p class="analysis-alert-text">{{ analysisError.summary }}</p>
+        <ol v-if="analysisError.steps?.length" class="analysis-steps">
+          <li v-for="(step, index) in analysisError.steps" :key="index">{{ step }}</li>
+        </ol>
+      </template>
+    </el-alert>
+
     <el-empty
       v-if="!reports.length"
-      description="添加竞店网址后，点击「执行今日爬取分析」查看上新与异常数据"
+      description="执行竞店分析后，这里会直接展示结果，并支持导出 Excel"
       :image-size="96"
     />
 
@@ -259,13 +596,24 @@ onMounted(async () => {
               <strong>{{ report.label }}</strong>
               <el-text size="small" type="info">{{ report.host }}</el-text>
             </div>
-            <el-space>
+            <el-space wrap>
               <el-tag size="small" effect="plain">
                 <el-icon style="vertical-align: -2px"><Refresh /></el-icon>
-                {{ report.crawlDate }} 爬取
+                {{ reportCrawlDateText(report) }}
               </el-tag>
               <el-text size="small" type="info">已存 {{ report.snapshotCount }} 天快照</el-text>
               <el-link :href="report.url" target="_blank" type="primary">访问店铺</el-link>
+              <el-button
+                v-if="useBackendData && canExportReport(report)"
+                size="small"
+                type="primary"
+                plain
+                :icon="Download"
+                :loading="exportingReportId === report.id"
+                @click="handleExport(report)"
+              >
+                导出 Excel
+              </el-button>
             </el-space>
           </div>
         </template>
@@ -289,78 +637,147 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="section">
-          <div class="section-head">
-            <strong>近期上新</strong>
-            <el-text size="small" type="info">对比 {{ report.previousCrawlDate || '历史' }} 快照识别的新品</el-text>
-          </div>
-          <el-table
-            v-if="report.recentListings.length"
-            :data="report.recentListings"
+        <div v-if="useBackendData" class="monitor-meta">
+          <el-space wrap>
+            <el-tag :type="report.hasFreshData ? 'success' : 'warning'" size="small" effect="dark">
+              {{ report.hasFreshData ? 'Fresh Snapshot' : 'Latest Miss' }}
+            </el-tag>
+            <el-tag v-if="report.latestJobStatus" :type="jobStatusType(report.latestJobStatus)" size="small" effect="plain">
+              {{ jobStatusText(report.latestJobStatus) }}
+            </el-tag>
+            <el-text v-if="report.reason" size="small" type="info">
+              {{ report.reason }}
+            </el-text>
+            <el-text v-if="report.latestJobId" size="small" type="info">
+              Job: {{ report.latestJobId }}
+            </el-text>
+          </el-space>
+
+          <el-text
+            v-if="report.latestJobStatus === 'failed' && report.latestJobError"
             size="small"
-            stripe
+            type="danger"
+            class="job-error-text"
           >
-            <el-table-column prop="name" label="商品名称" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="category" label="品类" width="100" />
-            <el-table-column label="售价" width="100" align="right" prop="priceText" />
-            <el-table-column label="上架时间" width="110">
-              <template #default="{ row }">
-                <el-tag
-                  :type="row.daysSinceListed === 0 ? 'success' : 'info'"
-                  size="small"
-                  effect="plain"
-                >
-                  {{ row.listedLabel }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="日销" prop="dailySales" width="80" align="center" />
-            <el-table-column label="累计销量" prop="totalSales" width="100" align="center" />
-            <el-table-column label="链接" width="80" align="center">
-              <template #default="{ row }">
-                <el-link :href="row.url" target="_blank" type="primary" size="small">查看</el-link>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-empty v-else description="近 7 日暂无新上架商品" :image-size="64" />
+            {{ report.latestJobError.title }}：{{ report.latestJobError.summary || report.latestJobErrorMessage }}
+          </el-text>
+
+          <div v-if="report.artifacts?.report_md_path || report.artifacts?.report_xlsx_path" class="artifact-list">
+            <el-text size="small" type="info">
+              Markdown: {{ report.artifacts.report_md_path || '未生成' }}
+            </el-text>
+            <el-text size="small" type="info">
+              Excel: {{ report.artifacts.report_xlsx_path || '未生成' }}
+            </el-text>
+          </div>
         </div>
 
         <div class="section">
           <div class="section-head">
-            <strong>销量异常</strong>
-            <el-text size="small" type="info">日销较 7 日均值涨幅 ≥50% 或较昨日涨幅 ≥80%</el-text>
+            <strong>上新明细</strong>
+            <el-text size="small" type="info">
+              对比 {{ report.previousCrawlDate || '历史快照' }} 识别出的新品
+            </el-text>
           </div>
-          <el-table
-            v-if="report.salesSpikes.length"
-            :data="report.salesSpikes"
+          <SearchableTable
+            v-if="report.recentListings.length"
+            :data="report.recentListings"
+            :fields="['name', 'category']"
+            placeholder="搜索商品 / 品类"
+            empty-text="暂无上新明细"
             size="small"
             stripe
           >
-            <el-table-column prop="name" label="商品名称" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="category" label="品类" width="100" />
+            <el-table-column prop="name" label="商品名称" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="category" label="品类" width="110" />
+            <el-table-column prop="priceText" label="售价" width="100" align="right" />
+            <el-table-column prop="dailySales" label="日销" width="80" align="center" />
+            <el-table-column prop="totalSales" label="累计销量" width="100" align="center" />
+            <el-table-column prop="listedLabel" label="上架日期" width="120" />
+            <el-table-column label="链接" width="90" align="center">
+              <template #default="{ row }">
+                <el-link :href="row.url" target="_blank" type="primary" size="small">查看</el-link>
+              </template>
+            </el-table-column>
+          </SearchableTable>
+          <el-empty v-else :description="recentListingsEmptyText(report, useBackendData)" :image-size="64" />
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <strong>销量异常明细</strong>
+            <el-text size="small" type="info">
+              展示当前快照中识别出的销量异常商品
+            </el-text>
+          </div>
+          <SearchableTable
+            v-if="report.salesSpikes.length"
+            :data="report.salesSpikes"
+            :fields="['name', 'category', 'anomalyType']"
+            placeholder="搜索商品 / 品类 / 异常类型"
+            empty-text="暂无销量异常"
+            size="small"
+            stripe
+          >
+            <el-table-column prop="name" label="商品名称" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="category" label="品类" width="110" />
             <el-table-column label="异常类型" width="100">
               <template #default="{ row }">
-                <el-tag :type="severityType(row.severity)" size="small" effect="dark">
+                <el-tag :type="row.severity === 'high' ? 'danger' : 'warning'" size="small" effect="dark">
                   {{ row.anomalyType }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="今日日销" prop="dailySales" width="90" align="center" />
-            <el-table-column label="昨日日销" prop="prevDailySales" width="90" align="center" />
-            <el-table-column label="7 日均销" prop="avg7DailySales" width="90" align="center" />
-            <el-table-column label="较昨日" width="90" align="center">
+            <el-table-column prop="priceText" label="售价" width="100" align="right" />
+            <el-table-column prop="dailySales" label="日销" width="80" align="center" />
+            <el-table-column prop="totalSales" label="累计销量" width="100" align="center" />
+            <el-table-column prop="listedLabel" label="上架日期" width="120" />
+            <el-table-column label="链接" width="90" align="center">
               <template #default="{ row }">
-                <el-text type="danger">{{ row.growthVsPrevText }}</el-text>
+                <el-link :href="row.url" target="_blank" type="primary" size="small">查看</el-link>
               </template>
             </el-table-column>
-            <el-table-column label="较均值" width="90" align="center">
+          </SearchableTable>
+          <el-empty v-else :description="salesSpikesEmptyText(report, useBackendData)" :image-size="64" />
+        </div>
+
+        <div v-if="useBackendData" class="section">
+          <div class="section-head">
+            <strong>抓取任务结果</strong>
+            <el-text size="small" type="info">
+              展示最近任务状态，便于运营确认是否已经抓到最新数据
+            </el-text>
+          </div>
+          <SearchableTable
+            v-if="report.history?.jobs?.length"
+            :data="report.history.jobs"
+            :fields="['job_id', 'status', 'trigger_type', 'error_message']"
+            placeholder="搜索 Job / 状态"
+            empty-text="暂无抓取任务记录"
+            size="small"
+            stripe
+          >
+            <el-table-column prop="job_id" label="Job ID" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="trigger_type" label="触发方式" width="100" />
+            <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
-                <el-text type="danger">{{ row.growthVsAvgText }}</el-text>
+                <el-tag :type="jobStatusType(row.status)" size="small" effect="plain">
+                  {{ row.status }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="售价" width="100" align="right" prop="priceText" />
-          </el-table>
-          <el-empty v-else description="暂无销量异常商品" :image-size="64" />
+            <el-table-column prop="queued_at" label="排队时间" min-width="160" />
+            <el-table-column prop="finished_at" label="结束时间" min-width="160" />
+            <el-table-column label="失败原因" min-width="300" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span v-if="row.error_code">
+                  {{ jobErrorDisplay(row).title }}
+                </span>
+                <span v-else>{{ row.error_message }}</span>
+              </template>
+            </el-table-column>
+          </SearchableTable>
+          <el-empty v-else description="暂无抓取任务记录" :image-size="64" />
         </div>
       </el-card>
     </div>
@@ -383,6 +800,54 @@ onMounted(async () => {
 .settings-form {
   max-width: 720px;
   margin-bottom: 8px;
+}
+
+.discovery-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.discovery-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.discovery-head strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.discovery-table {
+  margin-bottom: 4px;
+}
+
+.candidate-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.candidate-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sample-products {
+  display: grid;
+  gap: 2px;
+}
+
+.sample-product {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--el-text-color-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .competitor-table {
@@ -463,9 +928,41 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
+.monitor-meta {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.artifact-list {
+  display: grid;
+  gap: 4px;
+}
+
+.job-error-text {
+  line-height: 1.6;
+}
+
+.analysis-alert-text {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.analysis-steps {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
 @media (max-width: 768px) {
   .summary-row {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .discovery-head,
+  .report-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

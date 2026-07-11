@@ -216,7 +216,7 @@ defineExpose({ finishConfirm, setFilter })
 
     <el-empty
       v-if="!loading && !filteredViolations.length"
-      description="暂无违规记录"
+      description="违规接口已对接卖家后台，当前 90 天内无处罚记录"
       :image-size="72"
     />
 

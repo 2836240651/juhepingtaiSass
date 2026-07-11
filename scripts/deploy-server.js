@@ -10,20 +10,6 @@ const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 module.paths.push(path.join(__dirname, 'node_modules'));
-const { Client } = require('ssh2');
-
-const SSH = {
-  host: process.env.CROSSHUB_SSH_HOST || '',
-  port: Number(process.env.CROSSHUB_SSH_PORT || 22),
-  username: process.env.CROSSHUB_SSH_USER || 'root',
-  password: process.env.CROSSHUB_SSH_PASSWORD || '',
-  readyTimeout: 120000,
-};
-
-if (!SSH.host || !SSH.password) {
-  console.error('Set CROSSHUB_SSH_HOST and CROSSHUB_SSH_PASSWORD before deploying.');
-  process.exit(1);
-}
 
 const REMOTE_ROOT = '/data/crosshub';
 const WEB_ROOT = '/opt/1panel/www/sites/www.yoto.work/index/crosshub';
@@ -34,10 +20,12 @@ function run(cmd, cwd = ROOT) {
   execSync(cmd, { cwd, stdio: 'inherit', shell: true });
 }
 
-function walk(dir, files = []) {
+function walk(dir, files = [], options = {}, baseDir = dir) {
   for (const name of fs.readdirSync(dir)) {
     const p = path.join(dir, name);
-    if (fs.statSync(p).isDirectory()) walk(p, files);
+    const rel = path.relative(baseDir, p).replace(/\\/g, '/');
+    if (options.skip && options.skip(name, rel, p)) continue;
+    if (fs.statSync(p).isDirectory()) walk(p, files, options, baseDir);
     else files.push(p);
   }
   return files;
@@ -67,14 +55,25 @@ function sftpPut(sftp, local, remote) {
   });
 }
 
-async function uploadTree(sftp, localDir, remoteDir) {
+async function uploadTree(sftp, localDir, remoteDir, options = {}) {
   await sftpEnsureDir(sftp, remoteDir);
-  for (const local of walk(localDir)) {
+  for (const local of walk(localDir, [], options)) {
     const rel = path.relative(localDir, local).replace(/\\/g, '/');
     const remote = `${remoteDir}/${rel}`;
     await sftpEnsureDir(sftp, path.posix.dirname(remote));
     await sftpPut(sftp, local, remote);
   }
+}
+
+function shouldSkipPythonDeploy(_name, rel) {
+  const parts = rel.split('/').filter(Boolean);
+  if (parts.includes('__pycache__')) return true;
+  if (parts.includes('.temu-browser-profile')) return true;
+  if (parts.includes('reports')) return true;
+  if (parts.includes('tests')) return true;
+  if (rel === '.env') return true;
+  if (rel.endsWith('.pyc')) return true;
+  return false;
 }
 
 function exec(conn, cmd) {
@@ -96,6 +95,16 @@ function exec(conn, cmd) {
 }
 
 async function main() {
+  run('node scripts/deploy-preflight.js');
+  const { Client } = require('ssh2');
+  const ssh = {
+    host: process.env.CROSSHUB_SSH_HOST || '',
+    port: Number(process.env.CROSSHUB_SSH_PORT || 22),
+    username: process.env.CROSSHUB_SSH_USER || 'root',
+    password: process.env.CROSSHUB_SSH_PASSWORD || '',
+    readyTimeout: 120000,
+  };
+
   console.log('==> build Java JAR');
   run('powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-java.ps1');
   run(
@@ -116,7 +125,7 @@ async function main() {
 
   const conn = new Client();
   await new Promise((resolve, reject) => {
-    conn.on('ready', resolve).on('error', reject).connect(SSH);
+    conn.on('ready', resolve).on('error', reject).connect(ssh);
   });
 
   const sftp = await new Promise((resolve, reject) => {
@@ -128,8 +137,11 @@ async function main() {
   await sftpPut(sftp, path.join(buildDir, 'app.jar'), `${REMOTE_ROOT}/app.jar`);
   await sftpPut(sftp, path.join(ROOT, 'deploy/Dockerfile.java'), `${REMOTE_ROOT}/Dockerfile.java`);
   await sftpPut(sftp, path.join(ROOT, 'deploy/Dockerfile.express'), `${REMOTE_ROOT}/Dockerfile.express`);
+  await sftpPut(sftp, path.join(ROOT, 'deploy/Dockerfile.python-worker'), `${REMOTE_ROOT}/Dockerfile.python-worker`);
   await sftpPut(sftp, path.join(ROOT, 'deploy/docker-compose.yml'), `${REMOTE_ROOT}/docker-compose.yml`);
   await sftpPut(sftp, path.join(ROOT, 'deploy/crosshub-proxy.conf'), `${REMOTE_ROOT}/crosshub-proxy.conf`);
+  await sftpEnsureDir(sftp, `${REMOTE_ROOT}/scripts`);
+  await sftpPut(sftp, path.join(ROOT, 'scripts/monitor-api-smoke.js'), `${REMOTE_ROOT}/scripts/monitor-api-smoke.js`);
 
   const dbLocal = path.join(ROOT, 'backend/data/crosshub.db');
   if (fs.existsSync(dbLocal)) {
@@ -147,19 +159,37 @@ async function main() {
     }
   }
 
+  const pythonDir = path.join(ROOT, 'backend/python');
+  await uploadTree(sftp, pythonDir, `${REMOTE_ROOT}/python-src`, { skip: shouldSkipPythonDeploy });
+
   console.log('==> upload static frontend');
   await uploadTree(sftp, distDir, WEB_ROOT);
 
   const remoteCmd = [
     `set -e`,
-    `mkdir -p ${REMOTE_ROOT}/data ${WEB_ROOT}`,
+    `mkdir -p ${REMOTE_ROOT}/data ${REMOTE_ROOT}/evidence ${REMOTE_ROOT}/reports ${WEB_ROOT}`,
     `cp ${REMOTE_ROOT}/crosshub-proxy.conf ${PROXY_CONF}`,
     `cd ${REMOTE_ROOT}`,
     `docker build -f Dockerfile.java -t crosshub-java:latest .`,
     `docker build -f Dockerfile.express -t crosshub-express:latest express-src`,
+    `docker build -f Dockerfile.python-worker -t crosshub-python-worker:latest python-src`,
     `docker compose -f docker-compose.yml up -d --force-recreate`,
     `sleep 3`,
     `docker ps --filter name=crosshub --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}'`,
+    `test "$(docker inspect -f '{{.State.Running}}' crosshub-python-worker)" = "true"`,
+    `docker exec crosshub-python-worker test -d /data`,
+    `docker exec crosshub-python-worker test -d /evidence`,
+    `docker exec crosshub-python-worker test -d /reports`,
+    `docker exec crosshub-python-worker rm -rf /tmp/monitor-smoke`,
+    `docker exec crosshub-python-worker python smoke_monitor_snapshot.py --work-dir /tmp/monitor-smoke`,
+    `if [ -f ${REMOTE_ROOT}/.monitor-smoke.env ]; then`,
+    `  set -a`,
+    `  . ${REMOTE_ROOT}/.monitor-smoke.env`,
+    `  set +a`,
+    `  docker run --rm --network host -v ${REMOTE_ROOT}/scripts:/scripts:ro -v ${REMOTE_ROOT}/evidence:${REMOTE_ROOT}/evidence node:20-alpine node /scripts/monitor-api-smoke.js --base-url http://127.0.0.1:18080 --evidence-root ${REMOTE_ROOT}/evidence --db-path ${REMOTE_ROOT}/data/crosshub.db --no-local-worker --timeout-ms 60000`,
+    `else`,
+    `  echo 'skip_remote_monitor_api_smoke=missing_env_file'`,
+    `fi`,
     `curl -s -o /dev/null -w 'java_health=%{http_code}\\n' http://127.0.0.1:18080/api/temu/shops || true`,
     `curl -s http://127.0.0.1:18081/api/health || true`,
     `docker exec 1Panel-openresty-UN3Y openresty -t 2>/dev/null || nginx -t`,

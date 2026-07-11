@@ -9,6 +9,7 @@ import { PLATFORM_ORDER_LABELS } from '@/constants/platformShipRequests'
 import { normalizeUploadedFiles } from '@/utils/warehouseOrders'
 import { findLocalWarehouseSite } from '@/api/warehouseSitesLocal'
 import { syncPlatformOrderFromWarehouseOrder } from '@/api/platformOrderWarehouseSync'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
 const SEED_FLAG_KEY = 'crosshub_warehouse_orders_seeded'
 
@@ -30,37 +31,33 @@ function persistLinkedPlatformOrder(order) {
   return order
 }
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(WAREHOUSE_ORDER_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, WAREHOUSE_ORDER_STORAGE_KEY, []) || []
 }
 
-function saveAll(items) {
-  localStorage.setItem(WAREHOUSE_ORDER_STORAGE_KEY, JSON.stringify(items))
+function saveAll(items, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, WAREHOUSE_ORDER_STORAGE_KEY, items)
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('crosshub-warehouse-orders-changed'))
   }
 }
 
-function ensureSeed() {
-  if (localStorage.getItem(SEED_FLAG_KEY)) {
-    patchSeedWarehouses()
+function ensureSeed(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  if (loadScoped(tenantId, SEED_FLAG_KEY)) {
+    patchSeedWarehouses(tenantId)
     return
   }
-  const existing = loadAll()
+  const existing = loadAll(tenantId)
   const ids = new Set(existing.map((item) => item.id))
   const merged = [...existing, ...WAREHOUSE_ORDERS_SEED.filter((item) => !ids.has(item.id))]
-  saveAll(merged)
-  localStorage.setItem(SEED_FLAG_KEY, '1')
+  saveAll(merged, tenantId)
+  saveScoped(tenantId, SEED_FLAG_KEY, '1')
 }
 
-function patchSeedWarehouses() {
+function patchSeedWarehouses(tenantId = resolveTenantId()) {
   const seedById = Object.fromEntries(WAREHOUSE_ORDERS_SEED.map((item) => [item.id, item]))
-  const items = loadAll()
+  const items = loadAll(tenantId)
   let changed = false
   const next = items.map((item) => {
     const seed = seedById[item.id]
@@ -68,7 +65,7 @@ function patchSeedWarehouses() {
     changed = true
     return { ...item, warehouseId: seed.warehouseId, warehouseName: seed.warehouseName }
   })
-  if (changed) saveAll(next)
+  if (changed) saveAll(next, tenantId)
 }
 
 function nextOrderNo() {

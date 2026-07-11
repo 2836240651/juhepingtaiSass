@@ -1,4 +1,5 @@
 import { OPS_FEEDBACK_SEED, OUTCOME_MAP } from '@/constants/opsFeedbackDemo'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
 const STORAGE_KEY = 'crosshub_ops_feedback'
 const SEED_FLAG_KEY = 'crosshub_ops_feedback_seeded'
@@ -11,31 +12,27 @@ function nowText() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19)
 }
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, []) || []
 }
 
-function saveAll(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+function saveAll(items, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, items)
 }
 
-function ensureSeedFeedback() {
-  if (localStorage.getItem(SEED_FLAG_KEY)) return
+function ensureSeedFeedback(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  if (loadScoped(tenantId, SEED_FLAG_KEY)) return
   const date = todayKey()
   const seeded = OPS_FEEDBACK_SEED.map((item) => ({
     ...item,
     date: item.date || date,
   }))
-  const existing = loadAll()
+  const existing = loadAll(tenantId)
   const ids = new Set(existing.map((item) => item.id))
   const merged = [...existing, ...seeded.filter((item) => !ids.has(item.id))]
-  saveAll(merged)
-  localStorage.setItem(SEED_FLAG_KEY, '1')
+  saveAll(merged, tenantId)
+  saveScoped(tenantId, SEED_FLAG_KEY, '1')
 }
 
 export function fetchOpsFeedback(options = {}) {

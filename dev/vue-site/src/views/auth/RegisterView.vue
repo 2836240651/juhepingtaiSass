@@ -18,15 +18,6 @@ const form = ref({
   confirmPassword: '',
 })
 
-function fillDemo() {
-  form.value = {
-    company: '示例跨境科技有限公司',
-    account: `demo_${Date.now().toString().slice(-6)}@crosshub.cn`,
-    password: '12345678',
-    confirmPassword: '12345678',
-  }
-}
-
 async function handleRegister() {
   if (!form.value.company.trim()) {
     ElMessage.warning('请填写企业名称')
@@ -75,7 +66,7 @@ async function handleRegister() {
         <el-input
           v-model="form.company"
           :prefix-icon="OfficeBuilding"
-          placeholder="如：泰州亿拓户外用品有限公司"
+          placeholder="如：杭州亿拓户外用品有限公司"
           size="large"
           clearable
         />
@@ -85,9 +76,10 @@ async function handleRegister() {
         <el-input
           v-model="form.account"
           :prefix-icon="User"
-          placeholder="企业邮箱或手机号"
+          placeholder="企业邮箱或登录账号"
           size="large"
           clearable
+          autocomplete="username"
         />
       </el-form-item>
 
@@ -100,6 +92,7 @@ async function handleRegister() {
             :prefix-icon="Lock"
             placeholder="至少 6 位"
             size="large"
+            autocomplete="new-password"
             @focus="onPasswordFocus"
             @blur="onPasswordBlur"
           />
@@ -112,6 +105,7 @@ async function handleRegister() {
             :prefix-icon="Lock"
             placeholder="再次输入"
             size="large"
+            autocomplete="new-password"
             @focus="onPasswordFocus"
             @blur="onPasswordBlur"
             @keyup.enter="handleRegister"
@@ -135,18 +129,5 @@ async function handleRegister() {
       已有企业账号？
       <button type="button" class="auth-text-link" @click="router.push('/login')">返回登录</button>
     </p>
-
-    <section class="demo-section">
-      <div class="demo-section__head">
-        <span class="demo-section__label">快速体验</span>
-        <span class="demo-section__hint">一键填充示例</span>
-      </div>
-      <div class="demo-grid">
-        <button type="button" class="demo-chip" @click="fillDemo">
-          <strong>Demo 企业</strong>
-          <span>密码 12345678</span>
-        </button>
-      </div>
-    </section>
   </AuthSplitLayout>
 </template>

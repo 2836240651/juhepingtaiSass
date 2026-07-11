@@ -5,26 +5,27 @@ import AuthHeroIllustration from './AuthHeroIllustration.vue'
 <template>
   <div class="auth-split">
     <aside class="auth-split__hero">
-      <header class="hero-top">
-        <div class="hero-brand">
-          <div class="hero-brand__mark">CH</div>
-          <span class="hero-brand__name">CrossHub</span>
+      <div class="hero-stack">
+        <header class="hero-top">
+          <div class="hero-brand">
+            <div class="hero-brand__mark">CH</div>
+            <span class="hero-brand__name">CrossHub</span>
+          </div>
+        </header>
+
+        <div class="hero-copy">
+          <h1 class="hero-copy__title">跨境运营指挥台</h1>
+          <p class="hero-copy__desc">多平台数据整合 · 智能预警 · 分级权限管理</p>
+          <ul class="hero-copy__features">
+            <li>Temu / Amazon / 1688 全平台覆盖</li>
+            <li>企业管理员与员工分级工作台</li>
+            <li>运营问题实时追踪与协同</li>
+          </ul>
         </div>
-        <el-tag size="small" type="info" effect="plain" round>Demo</el-tag>
-      </header>
 
-      <div class="hero-copy">
-        <h1 class="hero-copy__title">跨境运营指挥台</h1>
-        <p class="hero-copy__desc">多平台数据整合 · 智能预警 · 分级权限管理</p>
-        <ul class="hero-copy__features">
-          <li>Temu / Amazon / 1688 全平台覆盖</li>
-          <li>企业管理员与员工分级工作台</li>
-          <li>运营问题实时追踪与协同</li>
-        </ul>
-      </div>
-
-      <div class="hero-stage">
-        <AuthHeroIllustration hero />
+        <div class="hero-stage">
+          <AuthHeroIllustration hero />
+        </div>
       </div>
     </aside>
 
@@ -38,60 +39,79 @@ import AuthHeroIllustration from './AuthHeroIllustration.vue'
 
 <style scoped>
 .auth-split {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(400px, 0.9fr);
-  height: 100%;
-  min-height: 100%;
-  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  min-height: 100dvh;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+.auth-split__hero,
+.auth-split__main {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .auth-split__hero {
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding: 32px 48px;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.25rem, 3vw, 3rem);
   background: var(--ch-surface);
   border-right: 1px solid var(--ch-border);
 }
 
+.hero-stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 2.5vw, 2.5rem);
+  width: 100%;
+  max-width: 26.25rem;
+  margin: 0 auto;
+}
+
 .hero-top {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  justify-content: space-between;
 }
 
 .hero-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .hero-brand__mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: var(--ch-radius-sm);
   background: var(--ch-primary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #fff;
 }
 
 .hero-brand__name {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--ch-text);
 }
 
 .hero-copy {
-  max-width: 420px;
-  margin-top: 40px;
+  flex-shrink: 0;
 }
 
 .hero-copy__title {
   margin: 0;
-  font-size: 32px;
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.02em;
@@ -99,85 +119,119 @@ import AuthHeroIllustration from './AuthHeroIllustration.vue'
 }
 
 .hero-copy__desc {
-  margin: 12px 0 0;
-  font-size: 15px;
+  margin: 0.75rem 0 0;
+  font-size: clamp(0.875rem, 1.1vw, 0.9375rem);
   line-height: 1.6;
   color: var(--ch-text-secondary);
 }
 
 .hero-copy__features {
-  margin: 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 1.25rem 0 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 10px;
 }
 
 .hero-copy__features li {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: clamp(0.8125rem, 1vw, 0.875rem);
+  line-height: 1.5;
   color: var(--ch-text-secondary);
 }
 
 .hero-copy__features li::before {
   content: '';
-  width: 6px;
-  height: 6px;
+  flex-shrink: 0;
+  width: 0.375rem;
+  height: 0.375rem;
+  margin-top: 0.45em;
   border-radius: 50%;
   background: var(--ch-primary);
-  flex-shrink: 0;
 }
 
 .hero-stage {
   display: flex;
-  flex: 1;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  min-height: 0;
-  margin-top: 32px;
+  width: 100%;
 }
 
 .auth-split__main {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  padding: 40px 48px;
-  overflow-y: auto;
+  padding: clamp(1.25rem, 3vw, 3rem);
   background: var(--ch-layout-bg);
 }
 
 .auth-panel {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  max-width: 400px;
-  padding: 36px 32px;
+  max-width: 25rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 2.5vw, 2.25rem) clamp(1.25rem, 2vw, 2rem);
   border: 1px solid var(--ch-border);
   border-radius: var(--ch-radius-lg);
   background: var(--ch-surface);
   box-shadow: var(--ch-shadow-sm);
+  box-sizing: border-box;
 }
 
 @media (max-width: 1080px) {
   .auth-split {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  .auth-split__main {
+    order: -1;
+    align-items: flex-start;
+    width: 100%;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem 1.5rem;
+  }
+
+  .auth-panel {
+    max-width: 30rem;
+    border: none;
+    box-shadow: none;
+    padding: 1.5rem 0.25rem 0.5rem;
   }
 
   .auth-split__hero {
+    width: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--ch-border);
-    padding: 28px 24px;
+    border-top: 1px solid var(--ch-border);
+    padding: 1.25rem 1rem max(1.5rem, env(safe-area-inset-bottom));
   }
 
-  .hero-copy { margin-top: 24px; }
-  .hero-stage { min-height: 240px; margin-top: 24px; }
+  .hero-stack {
+    max-width: 30rem;
+    gap: 1rem;
+  }
+
+  .hero-stage {
+    display: none;
+  }
 }
 
-@media (max-width: 640px) {
-  .auth-split__main { padding: 24px 16px; }
-  .auth-panel { padding: 28px 20px; }
-  .hero-copy__title { font-size: 24px; }
+@media (max-width: 480px) {
+  .auth-split__main {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .auth-panel {
+    padding: 1.25rem 0 0.25rem;
+  }
+
+  .hero-copy__features {
+    display: none;
+  }
 }
 </style>

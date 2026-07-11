@@ -55,7 +55,7 @@ const filterOptions = computed(() => [
 async function loadTasks() {
   loading.value = true
   try {
-    tasks.value = fetchWarehouseAssignedTasks(auth)
+    tasks.value = await fetchWarehouseAssignedTasks(auth)
   } catch {
     tasks.value = []
   } finally {
@@ -79,7 +79,7 @@ async function submitFeedback() {
 
   feedbackSubmitting.value = true
   try {
-    submitTaskFeedback({
+    await submitTaskFeedback({
       taskId: String(activeTask.value.id),
       employeeId: auth.warehouse.id,
       employeeName: auth.warehouse.name,
@@ -91,13 +91,13 @@ async function submitFeedback() {
       storeName: activeTask.value.storeName,
       outcome: feedbackForm.outcome,
       feedback: feedbackForm.feedback,
-    })
+    }, auth)
 
-    syncAssignedTaskFeedback(activeTask.value.id, {
+    await syncAssignedTaskFeedback(activeTask.value.id, {
       outcome: feedbackForm.outcome,
       feedback: feedbackForm.feedback,
       assigneeName: auth.warehouse.name,
-    })
+    }, auth)
 
     ElMessage.success('反馈已提交，管理员可在任务分配详情中查看')
     feedbackVisible.value = false

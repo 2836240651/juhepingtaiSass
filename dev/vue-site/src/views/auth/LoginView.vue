@@ -16,81 +16,8 @@ const { onPasswordFocus, onPasswordBlur } = useYotoMascot()
 
 const loading = ref(false)
 const portalRole = ref('boss')
-const password = ref('12345678')
-const account = ref('admin@crosshub.cn')
-
-const demoAccounts = [
-  {
-    role: 'boss',
-    label: '企业管理员',
-    account: 'admin@crosshub.cn',
-    password: '12345678',
-    hint: '全局总览',
-  },
-  {
-    role: 'employee',
-    label: '王一鸣',
-    account: 'wangyiming@yituo-outdoor.com',
-    password: 'Emp@Demo123',
-    hint: 'Temu',
-  },
-  {
-    role: 'employee',
-    label: '赵磊',
-    account: 'zhaolei@yituo-outdoor.com',
-    password: 'Emp@Demo654',
-    hint: '1688',
-  },
-  {
-    role: 'employee',
-    label: '刘洋',
-    account: 'liuyang@yituo-outdoor.com',
-    password: 'Emp@Demo987',
-    hint: 'Amazon',
-  },
-  {
-    role: 'employee',
-    label: '周婷',
-    account: 'zhouting@yituo-outdoor.com',
-    password: 'Emp@Demo852',
-    hint: 'Walmart',
-  },
-  {
-    role: 'employee',
-    label: '孙浩',
-    account: 'sunhao@yituo-outdoor.com',
-    password: 'Emp@Demo741',
-    hint: '拼多多',
-  },
-  {
-    role: 'employee',
-    label: '林雪',
-    account: 'linxue@yituo-outdoor.com',
-    password: 'Emp@Demo963',
-    hint: '抖音',
-  },
-  {
-    role: 'employee',
-    label: '何静',
-    account: 'hejing@yituo-outdoor.com',
-    password: 'Emp@Demo159',
-    hint: '视频号',
-  },
-  {
-    role: 'warehouse',
-    label: '张仓管',
-    account: 'warehouse@yituo-outdoor.com',
-    password: 'Wh@Demo123',
-    hint: '仓库端口',
-  },
-  {
-    role: 'warehouse',
-    label: '李拣货',
-    account: 'picker@yituo-outdoor.com',
-    password: 'Wh@Demo456',
-    hint: '安徽仓库',
-  },
-]
+const password = ref('')
+const account = ref('')
 
 const roleLabel = computed(() => {
   if (portalRole.value === 'boss') return '企业管理员'
@@ -106,12 +33,6 @@ onMounted(() => {
     portalRole.value = 'employee'
   }
 })
-
-function fillDemo(demo) {
-  portalRole.value = demo.role
-  account.value = demo.account
-  password.value = demo.password
-}
 
 async function handleLogin() {
   if (!account.value.trim()) {
@@ -174,7 +95,7 @@ async function handleLogin() {
         @click="portalRole = 'boss'"
       >
         <el-icon><UserFilled /></el-icon>
-        企业管理员
+        <span class="role-tab__text">企业管理员</span>
       </button>
       <button
         type="button"
@@ -183,7 +104,7 @@ async function handleLogin() {
         @click="portalRole = 'employee'"
       >
         <el-icon><User /></el-icon>
-        员工端口
+        <span class="role-tab__text">员工端口</span>
       </button>
       <button
         type="button"
@@ -192,7 +113,7 @@ async function handleLogin() {
         @click="portalRole = 'warehouse'"
       >
         <el-icon><Box /></el-icon>
-        仓库端口
+        <span class="role-tab__text">仓库端口</span>
       </button>
     </div>
 
@@ -204,6 +125,7 @@ async function handleLogin() {
           placeholder="企业邮箱或登录账号"
           size="large"
           clearable
+          autocomplete="username"
         />
       </el-form-item>
       <el-form-item label="密码">
@@ -214,6 +136,7 @@ async function handleLogin() {
           :prefix-icon="Lock"
           placeholder="请输入密码"
           size="large"
+          autocomplete="current-password"
           @focus="onPasswordFocus"
           @blur="onPasswordBlur"
           @keyup.enter="handleLogin"
@@ -225,7 +148,7 @@ async function handleLogin() {
         size="large"
         class="auth-submit"
         :loading="loading"
-        @click="handleLogin"
+        native-type="submit"
       >
         进入{{ roleLabel }}
         <el-icon><ArrowRight /></el-icon>
@@ -236,24 +159,5 @@ async function handleLogin() {
       还没有企业账号？
       <button type="button" class="auth-text-link" @click="router.push('/register')">免费注册</button>
     </p>
-
-    <section class="demo-section">
-      <div class="demo-section__head">
-        <span class="demo-section__label">Demo 账号</span>
-        <span class="demo-section__hint">点击快速填充</span>
-      </div>
-      <div class="demo-grid">
-        <button
-          v-for="demo in demoAccounts"
-          :key="demo.account"
-          type="button"
-          class="demo-chip"
-          @click="fillDemo(demo)"
-        >
-          <strong>{{ demo.label }}</strong>
-          <span>{{ demo.hint }}</span>
-        </button>
-      </div>
-    </section>
   </AuthSplitLayout>
 </template>

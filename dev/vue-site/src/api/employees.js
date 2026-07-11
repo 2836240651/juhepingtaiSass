@@ -1,5 +1,5 @@
-import { isTemuBackendEnabled } from './config'
-import { getAccessToken, service } from './request'
+import { hasBackendSession } from './backendSession'
+import { service } from './request'
 import { WAREHOUSE_MENU_CODE } from '@/constants/employees'
 import {
   deleteLocalEmployee,
@@ -43,9 +43,7 @@ function toMemberPayload(payload) {
 }
 
 export function canUseTenantMembersBackend(auth) {
-  if (!isTemuBackendEnabled()) return false
-  if (!getAccessToken() || !auth?.backendLinked) return false
-  return Boolean(auth?.isBoss)
+  return hasBackendSession(auth) && Boolean(auth?.isBoss)
 }
 
 async function fetchBackendMembers() {
@@ -56,12 +54,8 @@ async function fetchBackendMembers() {
 
 export async function fetchAssignableMenus(auth) {
   if (canUseTenantMembersBackend(auth)) {
-    try {
-      const res = await service.get('/api/tenant/assignable-menus')
-      return { success: true, data: res?.data || [] }
-    } catch {
-      /* fallback */
-    }
+    const res = await service.get('/api/tenant/assignable-menus')
+    return { success: true, data: res?.data || [] }
   }
   return {
     success: true,
@@ -71,11 +65,7 @@ export async function fetchAssignableMenus(auth) {
 
 export async function fetchEmployees(auth) {
   if (canUseTenantMembersBackend(auth)) {
-    try {
-      return await fetchBackendMembers()
-    } catch {
-      /* fallback */
-    }
+    return await fetchBackendMembers()
   }
   return fetchLocalEmployees()
 }
@@ -94,7 +84,10 @@ export async function saveEmployee(auth, payload) {
   return result
 }
 
-export async function updateMemberScopes(memberId, { platforms, assignedStoreIds, menuCodes }) {
+export async function updateMemberScopes(auth, memberId, { platforms, assignedStoreIds, menuCodes }) {
+  if (!canUseTenantMembersBackend(auth)) {
+    throw new Error('当前环境无法更新员工权限范围')
+  }
   const res = await service.put(`/api/tenant/members/${memberId}/scopes`, {
     platforms: platforms || [],
     shop_ids: assignedStoreIds || [],

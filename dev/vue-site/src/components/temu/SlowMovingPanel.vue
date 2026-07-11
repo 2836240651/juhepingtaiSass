@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { SLOW_MOVING_THRESHOLDS } from '@/constants/temu'
 import AssigneeTableColumn from '@/components/common/AssigneeTableColumn.vue'
+import TableQueryBar from '@/components/common/TableQueryBar.vue'
+import { useFuzzySearchPagination } from '@/composables/useFuzzySearchPagination'
 
 const props = defineProps({
   products: { type: Array, required: true },
@@ -17,7 +19,7 @@ const tierCounts = computed(() => ({
   45: props.products.filter((p) => p.daysWithoutSale >= 45).length,
 }))
 
-const filtered = computed(() => {
+const tierFiltered = computed(() => {
   const list = props.products.filter((p) => p.slowMoving)
   if (activeTier.value === 'all') return list.sort((a, b) => b.daysWithoutSale - a.daysWithoutSale)
   const min = Number(activeTier.value)
@@ -25,6 +27,10 @@ const filtered = computed(() => {
   return list
     .filter((p) => p.daysWithoutSale >= min && p.daysWithoutSale < max)
     .sort((a, b) => b.daysWithoutSale - a.daysWithoutSale)
+})
+
+const { keyword, page, pageSize, total, paged } = useFuzzySearchPagination(tierFiltered, {
+  fields: ['sku', 'name', 'storeName', 'category'],
 })
 
 function tierTagType(row) {
@@ -60,9 +66,16 @@ function tierTagType(row) {
         </el-space>
       </template>
 
-      <el-empty v-if="!filtered.length" description="当前阈值下无滞销 SKU" />
+      <TableQueryBar
+        v-model:keyword="keyword"
+        v-model:page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+      />
 
-      <el-table v-else :data="filtered" stripe>
+      <el-empty v-if="!total" description="当前阈值下无滞销 SKU" />
+
+      <el-table v-else :data="paged" stripe>
         <el-table-column v-if="showStoreColumn" prop="storeName" label="所属店铺" width="130" show-overflow-tooltip />
         <AssigneeTableColumn />
         <el-table-column prop="sku" label="SKU" width="110" />

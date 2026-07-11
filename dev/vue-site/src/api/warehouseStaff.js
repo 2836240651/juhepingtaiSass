@@ -1,5 +1,5 @@
-import { isTemuBackendEnabled } from './config'
-import { getAccessToken, service } from './request'
+import { hasBackendSession } from './backendSession'
+import { service } from './request'
 import {
   deleteLocalWarehouseStaff,
   fetchLocalWarehouseStaff,
@@ -29,7 +29,7 @@ function toStaffPayload(payload) {
     phone: payload.phone || '',
     role: payload.role,
     status: payload.status !== false,
-    warehouseIds: payload.warehouseIds || [],
+    warehouse_ids: payload.warehouseIds || [],
   }
   if (payload.password) body.password = payload.password
   return body
@@ -40,9 +40,7 @@ export function canManageWarehouseStaff(auth) {
 }
 
 export function canUseWarehouseStaffBackend(auth) {
-  if (!isTemuBackendEnabled()) return false
-  if (!getAccessToken() || !auth?.backendLinked) return false
-  return auth.isBoss
+  return hasBackendSession(auth) && auth.isBoss
 }
 
 async function fetchBackendWarehouseStaff() {
@@ -53,11 +51,7 @@ async function fetchBackendWarehouseStaff() {
 
 export async function fetchWarehouseStaff(auth) {
   if (canUseWarehouseStaffBackend(auth)) {
-    try {
-      return await fetchBackendWarehouseStaff()
-    } catch {
-      /* fallback */
-    }
+    return await fetchBackendWarehouseStaff()
   }
   return fetchLocalWarehouseStaff()
 }

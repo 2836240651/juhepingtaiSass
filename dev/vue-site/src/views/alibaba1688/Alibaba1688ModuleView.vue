@@ -8,6 +8,7 @@ import { fetchAlibaba1688Stores } from '@/api/platformAccounts'
 import { scopeStores } from '@/utils/scope'
 import { useStoreAssignees } from '@/composables/useStoreAssignees'
 import { pushPlatformOrderToWarehouse, enrichOrdersWithWarehouseFeedback } from '@/api/platformShipRequests'
+import { isPlatformOperationalDemoOnly, platformOperationalHint } from '@/utils/platformOperationalMode'
 import PageHeader from '@/components/common/PageHeader.vue'
 import PageScroll from '@/components/common/PageScroll.vue'
 import Alibaba1688BossOverview from '@/components/alibaba1688/Alibaba1688BossOverview.vue'
@@ -29,6 +30,9 @@ const shipDialogVisible = ref(false)
 const shipDialogOrder = ref(null)
 const shipDialogType = ref('push')
 const shipSubmitting = ref(false)
+
+const operationalDemoOnly = computed(() => isPlatformOperationalDemoOnly('1688'))
+const operationalHint = computed(() => platformOperationalHint('1688'))
 
 const storeNameMap = computed(() =>
   Object.fromEntries(stores1688.value.map((store) => [store.id, store.storeName])),
@@ -71,12 +75,12 @@ async function loadModuleData() {
   try {
     const res = await fetchAlibaba1688Stores()
     stores1688.value = scopeStores(res.data || [], auth)
-    if (stores1688.value.length) {
+    if (stores1688.value.length && !operationalDemoOnly.value) {
       const demoRes = loadAlibaba1688OperationalData(stores1688.value)
       purchaseOrders.value = enrichOrdersWithWarehouseFeedback(demoRes.data.purchaseOrders)
       supplierAlerts.value = demoRes.data.supplierAlerts
       syncedAt.value = demoRes.data.syncedAt
-    } else {
+    } else if (!stores1688.value.length) {
       purchaseOrders.value = []
       supplierAlerts.value = []
       syncedAt.value = ''
@@ -92,7 +96,7 @@ async function loadModuleData() {
 }
 
 function refreshData() {
-  if (!stores1688.value.length) return
+  if (!stores1688.value.length || operationalDemoOnly.value) return
   const demoRes = loadAlibaba1688OperationalData(stores1688.value)
   purchaseOrders.value = enrichOrdersWithWarehouseFeedback(demoRes.data.purchaseOrders)
   supplierAlerts.value = demoRes.data.supplierAlerts
@@ -187,6 +191,15 @@ onActivated(loadModuleData)
     </el-empty>
 
     <template v-else-if="stores1688.length">
+      <el-alert
+        v-if="operationalDemoOnly && operationalHint"
+        :title="operationalHint"
+        type="info"
+        show-icon
+        :closable="false"
+        class="operational-hint"
+      />
+
       <Alibaba1688BossOverview
         v-if="auth.isBoss"
         :purchase-orders="filteredOrders"

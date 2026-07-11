@@ -32,6 +32,12 @@ const currentOrders = computed(() =>
   orderType.value === 'jit' ? jitOrders.value : warehouseOrders.value,
 )
 
+function formatOrderAmount(row) {
+  const amount = Number(row?.amount)
+  if (!Number.isFinite(amount) || amount <= 0) return '—'
+  return `${formatMoneyDecimal(amount)} ${row.currency || ''}`.trim()
+}
+
 function statusType(order) {
   if (order.fulfillmentType === 'jit') {
     return JIT_STATUS_TYPE[order.status] || 'info'
@@ -93,7 +99,7 @@ function statusType(order) {
       <el-table-column prop="quantity" label="数量" width="70" align="center" />
       <el-table-column label="金额" width="100" align="right">
         <template #default="{ row }">
-          {{ formatMoneyDecimal(row.amount) }} {{ row.currency }}
+          {{ formatOrderAmount(row) }}
         </template>
       </el-table-column>
       <el-table-column prop="country" label="目的国" width="90" />

@@ -1,24 +1,33 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { ACOS_THRESHOLDS } from '@/constants/amazonBoss'
-import { summarizeTopProducts, acosMeta, formatAmazonMoney } from '@/utils/amazonBoss'
+import { summarizeTopProducts, acosMeta, formatAmazonMoney, formatAmazonPercent } from '@/utils/amazonBoss'
+import { resolveAmazonProductEmptyHint } from '@/utils/amazonProductHint'
 import AmazonPanelHeader from '@/components/amazon/AmazonPanelHeader.vue'
 import AssigneeTableColumn from '@/components/common/AssigneeTableColumn.vue'
 
 const props = defineProps({
   products: { type: Array, default: () => [] },
   syncedAt: { type: String, default: '' },
+  syncIssue: { type: Object, default: null },
   loading: { type: Boolean, default: false },
+  reportsLoading: { type: Boolean, default: false },
   showStoreColumn: { type: Boolean, default: false },
   storeNameMap: { type: Object, default: () => ({}) },
   initialFilter: { type: String, default: 'all' },
 })
 
-defineEmits(['refresh'])
+defineEmits(['refresh', 'refreshReports'])
 
 const filter = ref(props.initialFilter)
 
 const summary = computed(() => summarizeTopProducts(props.products, 20))
+
+const emptyHint = computed(() => {
+  if (summary.value.top.length || props.loading) return null
+  if (props.syncIssue) return props.syncIssue
+  return resolveAmazonProductEmptyHint({ syncedAt: props.syncedAt })
+})
 
 const filterOptions = computed(() => [
   { label: 'TOP20 全部', value: 'all' },
@@ -72,10 +81,13 @@ watch(
   <div class="amz-panel">
     <AmazonPanelHeader
       title="产品 TOP20"
-      description="按近 7 日销售额排序，关注 ACOS、转化与库存"
+      description="按近 7 日销售额排序，关注 ACOS、转化与库存；Business Report 从卖家后台报表页同步"
       :synced-at="syncedAt"
+      secondary-action-label="Business Report 刷新"
       action-label="刷新数据"
+      :secondary-loading="reportsLoading"
       :loading="loading"
+      @secondary-action="$emit('refreshReports')"
       @action="$emit('refresh')"
     />
 
@@ -103,6 +115,26 @@ watch(
     </div>
 
     <el-alert
+      v-if="emptyHint"
+      :type="emptyHint.type || 'warning'"
+      :closable="false"
+      show-icon
+      :title="emptyHint.title"
+      :description="emptyHint.description"
+      style="margin-bottom: 4px"
+    />
+
+    <el-alert
+      v-if="!summary.hasAdData && summary.top.length"
+      type="info"
+      :closable="false"
+      show-icon
+      title="广告数据尚未同步"
+      description="请点击上方「Business Report 刷新」，从卖家后台报表与广告活动页同步 ACOS 与广告花费（需紫鸟与同步助手在线）。"
+      style="margin-bottom: 4px"
+    />
+
+    <el-alert
       v-if="summary.dangerAcosCount"
       type="error"
       :closable="false"
@@ -125,23 +157,26 @@ watch(
       <el-table-column label="7日订单" width="80" align="center">
         <template #default="{ row }">{{ row.orders7d }}</template>
       </el-table-column>
-      <el-table-column label="7日销售额" width="110" align="right">
+      <el-table-column label="7日销售额" width="128" align="right" class-name="money-col">
         <template #default="{ row }">
-          {{ formatAmazonMoney(row.revenue7d, row.currency) }}
+          <span class="money-cell">{{ formatAmazonMoney(row.revenue7d, row.currency) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="广告花费" width="100" align="right">
+      <el-table-column label="广告花费" width="118" align="right" class-name="money-col">
         <template #default="{ row }">
-          {{ formatAmazonMoney(row.adSpend7d, row.currency) }}
+          <span class="money-cell">{{ formatAmazonMoney(row.adSpend7d, row.currency) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="ACOS" width="88" align="center" sortable :sort-method="(a, b) => a.acos - b.acos">
         <template #default="{ row }">
-          <el-tag :type="acosMeta(row.acos).type" size="small">{{ row.acos }}%</el-tag>
+          <el-tag v-if="row.acos > 0" :type="acosMeta(row.acos).type" size="small">
+            {{ formatAmazonPercent(row.acos) }}
+          </el-tag>
+          <span v-else class="money-cell">—</span>
         </template>
       </el-table-column>
       <el-table-column label="TACoS" width="72" align="center">
-        <template #default="{ row }">{{ row.tacos }}%</template>
+        <template #default="{ row }">{{ formatAmazonPercent(row.tacos) }}</template>
       </el-table-column>
       <el-table-column label="转化率" width="72" align="center">
         <template #default="{ row }">{{ row.conversionRate }}%</template>
@@ -190,6 +225,12 @@ watch(
 .mini-stat__value {
   font-size: 18px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-cell {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
 .mini-stat__value.is-danger {
@@ -203,6 +244,12 @@ watch(
 .mini-stat__label {
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+.product-table :deep(.money-col .cell) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  white-space: nowrap;
 }
 
 .product-table {

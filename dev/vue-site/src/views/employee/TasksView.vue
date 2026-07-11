@@ -156,9 +156,9 @@ function openTaskDetail(row) {
   opsDetailVisible.value = true
 }
 
-function openAssignedDetail(row) {
+async function openAssignedDetail(row) {
   try {
-    const res = fetchAssignedTaskDetail(row.id)
+    const res = await fetchAssignedTaskDetail(row.id, auth)
     detailTask.value = res.data.task
     detailFeedbacks.value = res.data.feedbacks
     detailVisible.value = true
@@ -176,7 +176,7 @@ async function submitFeedback() {
 
   feedbackSubmitting.value = true
   try {
-    submitTaskFeedback({
+    await submitTaskFeedback({
       taskId: String(activeTask.value.id),
       employeeId: auth.employee.id,
       employeeName: auth.employee.name,
@@ -188,14 +188,14 @@ async function submitFeedback() {
       storeName: activeTask.value.storeName,
       outcome: feedbackForm.outcome,
       feedback: feedbackForm.feedback,
-    })
+    }, auth)
 
     if (activeTask.value.source === 'assigned') {
-      syncAssignedTaskFeedback(activeTask.value.id, {
+      await syncAssignedTaskFeedback(activeTask.value.id, {
         outcome: feedbackForm.outcome,
         feedback: feedbackForm.feedback,
         assigneeName: auth.employee.name,
-      })
+      }, auth)
       ElMessage.success('反馈已提交，已同步至管理员任务分配')
     } else {
       ElMessage.success('反馈已提交，将同步至运营总览')

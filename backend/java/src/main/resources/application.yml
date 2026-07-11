@@ -4,6 +4,11 @@ server:
 crosshub:
   jwt-secret: crosshub-dev-secret-change-in-production
   db-path: ${CROSSHUB_DB_PATH:../data/crosshub.db}
+  crawler:
+    python-executable: ${CROSSHUB_PYTHON:py}
+    script-dir: ${CROSSHUB_PYTHON_DIR:../python}
+    timeout-seconds: 300
+    allow-seed: false
 
 spring:
   datasource:

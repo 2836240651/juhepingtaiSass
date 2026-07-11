@@ -3,6 +3,7 @@ import {
   PLATFORM_LABELS,
   TASK_STATUS_OPTIONS,
 } from '@/constants/assignedTasks'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
 const STORAGE_KEY = 'crosshub_assigned_tasks'
 const SEED_FLAG_KEY = 'crosshub_assigned_tasks_seeded'
@@ -11,21 +12,17 @@ function nowText() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19)
 }
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, []) || []
 }
 
-function saveAll(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+function saveAll(items, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, items)
 }
 
-function ensureSeedTasks() {
-  const existing = loadAll()
+function ensureSeedTasks(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  const existing = loadAll(tenantId)
   const demoById = Object.fromEntries(ASSIGNED_TASKS_SEED.map((item) => [item.id, item]))
   const custom = existing.filter((item) => !demoById[item.id])
   const mergedDemos = ASSIGNED_TASKS_SEED.map((item) => {
@@ -33,8 +30,8 @@ function ensureSeedTasks() {
     if (!current) return { ...item }
     return { ...item, ...current }
   })
-  saveAll([...custom, ...mergedDemos])
-  localStorage.setItem(SEED_FLAG_KEY, '1')
+  saveAll([...custom, ...mergedDemos], tenantId)
+  saveScoped(tenantId, SEED_FLAG_KEY, '1')
 }
 
 function normalizeStatus(status) {

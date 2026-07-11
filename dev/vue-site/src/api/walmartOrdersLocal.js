@@ -1,6 +1,9 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import { WALMART_ORDERS_SEED, WFS_ORDER_STATUSES, SELLER_ORDER_STATUSES } from '@/constants/walmartDemo'
 
 const STORAGE_KEY = 'crosshub_walmart_orders'
+
+const EMPTY = { date: '', syncedAt: '', items: [] }
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10)
@@ -10,17 +13,12 @@ function nowText() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19)
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { date: '', syncedAt: '', items: [] }
-  } catch {
-    return { date: '', syncedAt: '', items: [] }
-  }
+function loadState(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, EMPTY) || { ...EMPTY }
 }
 
-function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+function saveState(state, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, state)
 }
 
 function hashStoreId(id) {

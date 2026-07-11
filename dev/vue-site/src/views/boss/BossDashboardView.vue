@@ -1,7 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatCaughtError } from '@/utils/appErrorCode'
 import { loadOperationsOverview } from '@/api/operationsOverview'
 import OperationsSummaryHeader from '@/components/dashboard/OperationsSummaryHeader.vue'
 import OperationsIssuesPanel from '@/components/dashboard/OperationsIssuesPanel.vue'
@@ -31,14 +33,16 @@ async function refresh() {
   try {
     const res = await loadOperationsOverview(auth)
     context.value = res.data
-  } catch {
+  } catch (err) {
     context.value = null
+    ElMessage.warning(formatCaughtError(err, '运营总览加载失败，请稍后重试'))
   } finally {
     loading.value = false
   }
 }
 
 onMounted(refresh)
+onActivated(refresh)
 </script>
 
 <template>

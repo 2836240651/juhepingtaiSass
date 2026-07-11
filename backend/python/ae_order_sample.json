@@ -1,0 +1,177 @@
+{
+  "url": "https://seller-acs.aliexpress.com/h5/mtop.csp.merchant.menu.get/1.0/?jsv=2.7.2&appKey=12574478&t=1783479297953&sign=f64cff6fde27a92e643d7a780ca5b6ad&type=originaljson&api=mtop.csp.merchant.menu.get&v=1.0&dataType=json&data=%7B%22url%22%3A%22%2Fm_apps%2Forder-manage%2ForderList%22%7D",
+  "keys": [
+    "api",
+    "data",
+    "ret",
+    "traceId",
+    "v"
+  ],
+  "body": {
+    "api": "mtop.csp.merchant.menu.get",
+    "data": {
+      "module": {
+        "buc": "CSP_GLOBAL",
+        "currentMenuId": "Root-Home-productscsp-publishproductscsp",
+        "footerMenu": [],
+        "headMenu": [],
+        "isGray": true,
+        "languages": [
+          {
+            "code": "en_US",
+            "icon": "",
+            "name": "English"
+          },
+          {
+            "code": "zh_CN",
+            "icon": "",
+            "name": "简体中文"
+          }
+        ],
+        "leftMenu": [
+          {
+            "action": "current",
+            "collect": false,
+            "icon": "a-productcopying",
+            "id": "Root-Home-global_ProductsMoveCencer",
+            "level": 2,
+            "link": "//gsp.aliexpress.com/m_apps/aepop-product-manage/distribution-center",
+            "name": "铺货中心",
+            "position": "left",
+            "show": false,
+            "type": "normal"
+          },
+          {
+            "action": "current",
+            "collect": false,
+            "icon": "store",
+            "id": "Root-Home-globalstorebrandmanagement",
+            "level": 2,
+            "link": "//gsp.aliexpress.com/m_apps/brand-manage/csp_brand",
+            "name": "多店铺品牌管理",
+            "position": "left",
+            "referencedUris": [
+              "/m_apps/brand-manage/csp_brand"
+            ],
+            "show": false,
+            "type": "normal"
+          },
+          {
+            "action": "current",
+            "collect": false,
+            "icon": "finance",
+            "id": "Root-Home-globalstorebalanceoverview",
+            "level": 2,
+            "link": "//gsp.aliexpress.com/m_apps/funds-manage/financialArise",
+            "name": "多店铺余额概览",
+            "position": "left",
+            "referencedUris": [
+              "/m_apps/funds-manage/financialArise"
+            ],
+            "show": false,
+            "type": "normal"
+          },
+          {
+            "action": "current",
+            "collect": false,
+            "icon": "data",
+            "id": "Root-Home-globalstoredataoverview",
+            "level": 2,
+            "link": "//gsp.aliexpress.com/m_apps/csp-data/home-overview",
+            "name": "多店铺数据概览",
+            "position": "left",
+            "referencedUris": [
+              "/m_apps/csp-data/home-overview"
+            ],
+            "show": false,
+            "type": "normal"
+          },
+          {
+            "action": "current",
+            "collect": false,
+            "icon": "",
+            "id": "Root-Home-root-account-global",
+            "level": 4,
+            "link": "",
+            "loginEmail": "tuodiaosmt@163.com",
+            "menu": [
+              {
+                "action": "current",
+                "collect": false,
+                "icon": "set",
+                "id": "Root-Home-root-account-global-root-account-basicInfoMng-global",
+                "level": 8,
+                "link": "//gsp.aliexpress.com/m_apps/info/sub-infoMange",
+                "name": "基础信息管理",
+                "position": "left",
+                "show": false,
+                "type": "normal"
+              },
+              {
+                "action": "current",
+                "collect": false,
+                "icon": "",
+                "id": "Root-Home-root-account-global-root-account-divider-global",
+                "level": 8,
+                "link": "",
+                "name": "分隔符",
+                "position": "left",
+                "show": false,
+                "type": "divider"
+              },
+              {
+                "action": "current",
+                "collect": false,
+                "icon": "bill",
+                "id": "Root-Home-root-account-global-root-account-integrityissues-global",
+                "level": 8,
+                "link": "//aidc.jubao.alibaba.com/",
+                "name": "廉正举报",
+                "position": "left",
+                "show": false,
+                "type": "normal"
+              },
+              {
+                "action": "current",
+                "collect": false,
+                "icon": "language",
+                "id": "Root-Home-root-account-global-root-account-switchLanguage-global",
+                "level": 8,
+                "link": "",
+                "name": "切换语言",
+                "position": "left",
+                "show": false,
+                "type": "language"
+              },
+              {
+                "action": "current",
+                "collect": false,
+                "icon": "exit",
+                "id": "Root-Home-root-account-global-root-account-logout-global",
+                "level": 8,
+                "link": "//login.aliexpress.com/user/seller/xman/xlogout.htm?return_url=http://csp.aliexpress.com",
+                "name": "退出登录",
+                "position": "left",
+                "show": false,
+                "type": "logout"
+              }
+            ],
+            "name": "default firstName",
+            "position": "left",
+            "show": false,
+            "type": "account",
+            "userId": 6004053842
+          }
+        ]
+      },
+      "notSuccess": false,
+      "repeated": false,
+      "retry": false
+    },
+    "ret": [
+      "SUCCESS::调用成功"
+    ],
+    "traceId": "2101590d17834792988743292e3d23",
+    "v": "1.0"
+  }
+}

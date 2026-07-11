@@ -3,7 +3,13 @@ defineProps({
   title: { type: String, required: true },
   description: { type: String, default: '' },
   syncedAt: { type: String, default: '' },
+  actionLabel: { type: String, default: '' },
+  secondaryActionLabel: { type: String, default: '' },
+  loading: { type: Boolean, default: false },
+  secondaryLoading: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['action', 'secondaryAction'])
 </script>
 
 <template>
@@ -12,7 +18,28 @@ defineProps({
       <div class="panel-header__title">{{ title }}</div>
       <div v-if="description" class="panel-header__desc">{{ description }}</div>
     </div>
-    <el-text v-if="syncedAt" size="small" type="info">最近同步 {{ syncedAt }}</el-text>
+    <div class="panel-header__side">
+      <slot name="actions">
+        <el-button
+          v-if="secondaryActionLabel"
+          size="small"
+          :loading="secondaryLoading"
+          @click="emit('secondaryAction')"
+        >
+          {{ secondaryActionLabel }}
+        </el-button>
+        <el-button
+          v-if="actionLabel"
+          size="small"
+          type="primary"
+          :loading="loading"
+          @click="emit('action')"
+        >
+          {{ actionLabel }}
+        </el-button>
+      </slot>
+      <el-text v-if="syncedAt" size="small" type="info">最近同步 {{ syncedAt }}</el-text>
+    </div>
   </div>
 </template>
 
@@ -25,6 +52,13 @@ defineProps({
   justify-content: space-between;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.panel-header__side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
 }
 
 .panel-header__title {

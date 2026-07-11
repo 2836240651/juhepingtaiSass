@@ -1,3 +1,4 @@
+﻿import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   ALIBABA1688_OPERATOR,
   PURCHASE_ORDERS_SEED,
@@ -8,17 +9,13 @@ import {
 
 const STORAGE_KEY = 'crosshub_1688_demo'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { purchaseOrders: [], supplierAlerts: [] }
-  } catch {
-    return { purchaseOrders: [], supplierAlerts: [] }
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, { purchaseOrders: [], supplierAlerts: [] })
+    || { purchaseOrders: [], supplierAlerts: [] }
 }
 
-function saveAll(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function saveAll(data, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, data)
 }
 
 function hashStoreId(id) {
@@ -129,3 +126,4 @@ export function loadAlibaba1688DemoData(stores = []) {
     supplierAlerts: data.supplierAlerts.filter((item) => boundIds.has(item.storeId)),
   }
 }
+

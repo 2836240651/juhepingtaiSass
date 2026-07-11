@@ -1,33 +1,65 @@
 #!/usr/bin/env python3
-"""入口：python crawl.py [--date YYYY-MM-DD] [--seed]"""
+"""入口：python crawl.py --tenant-id 1 [--date YYYY-MM-DD] [--seed]"""
 from __future__ import annotations
 
 import argparse
 import sys
 
+from app.config import resolve_tenant_id
 from app.ingest import run_ingest
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Temu 爬虫入库")
+    parser.add_argument("--tenant-id", type=int, help="租户 ID（必填，或设置 TENANT_ID）")
     parser.add_argument("--date", help="上报日期 YYYY-MM-DD，默认今天")
     parser.add_argument(
         "--seed",
         action="store_true",
-        help="使用 demo 种子数据（不打开浏览器）",
+        help="已禁用：请完成 Temu 登录后使用 live 爬取",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="成功时向 stdout 输出单行 JSON（供 Java 解析）",
     )
     args = parser.parse_args()
 
     try:
-        result = run_ingest(args.date, use_seed=args.seed)
-    except Exception as exc:
-        print(f"爬取失败: {exc}", file=sys.stderr)
-        print("提示: 首次请先 py login.py 登录；或临时用 py crawl.py --seed", file=sys.stderr)
+        tenant_id = resolve_tenant_id(args.tenant_id)
+    except ValueError as exc:
+        print(f"错误: {exc}", file=sys.stderr)
+        sys.exit(2)
+
+    if args.seed:
+        print("错误: 种子数据模式已关闭，请完成 Temu 登录后使用真实爬取", file=sys.stderr)
         sys.exit(1)
 
-    print(
-        f"report_time={result['report_time']} shops={result['shops']} rows={result['rows']}"
-    )
+    try:
+        result = run_ingest(args.date, use_seed=args.seed, tenant_id=tenant_id)
+    except Exception as exc:
+        print(f"爬取失败: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.json:
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "tenant_id": tenant_id,
+                    "report_time": result["report_time"],
+                    "shops": result["shops"],
+                    "rows": result["rows"],
+                },
+                ensure_ascii=False,
+            )
+        )
+    else:
+        print(
+            f"tenant_id={tenant_id} report_time={result['report_time']} "
+            f"shops={result['shops']} rows={result['rows']}"
+        )
 
 
 if __name__ == "__main__":

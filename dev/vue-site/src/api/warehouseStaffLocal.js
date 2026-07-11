@@ -1,16 +1,12 @@
 import { WAREHOUSE_DEFAULT_ROLE, WAREHOUSE_USERS, WAREHOUSE_STAFF_STORAGE_KEY } from '@/constants/warehouseStaff'
+import { loadScoped, resolveTenantId, saveScoped, isDemoTemplateEnabled } from '@/utils/tenantStorage'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(WAREHOUSE_STAFF_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, WAREHOUSE_STAFF_STORAGE_KEY, []) || []
 }
 
-function saveAll(staff) {
-  localStorage.setItem(WAREHOUSE_STAFF_STORAGE_KEY, JSON.stringify(staff))
+function saveAll(staff, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, WAREHOUSE_STAFF_STORAGE_KEY, staff)
 }
 
 function createId() {
@@ -18,11 +14,12 @@ function createId() {
 }
 
 /** 始终同步 Demo 仓库人员样本（按 id 覆盖更新） */
-export function ensureDemoWarehouseStaff() {
-  const existing = loadAll()
+export function ensureDemoWarehouseStaff(tenantId = resolveTenantId()) {
+  if (!isDemoTemplateEnabled(tenantId)) return
+  const existing = loadAll(tenantId)
   const demoById = Object.fromEntries(WAREHOUSE_USERS.map((item) => [item.id, item]))
   const custom = existing.filter((item) => !demoById[item.id])
-  saveAll([...custom, ...WAREHOUSE_USERS.map((item) => ({ ...item }))])
+  saveAll([...custom, ...WAREHOUSE_USERS.map((item) => ({ ...item }))], tenantId)
 }
 
 export function fetchLocalWarehouseStaff() {

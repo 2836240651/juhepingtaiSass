@@ -28,9 +28,17 @@ export function buildPlatformSalesRows(payload) {
   const assigneeMap = buildStoreAssigneeMap(employees)
   const rows = []
 
-  if (temu?.products?.length) {
-    const summary = summarizeTemuProducts(temu.products)
-    const storeIds = (temu.stores || []).map((store) => store.id)
+  if (temu?.stores?.length) {
+    const summary = temu.products?.length
+      ? summarizeTemuProducts(temu.products)
+      : {
+          dailyRevenue: 0,
+          dailySales: 0,
+          lossCount: 0,
+          restockCount: 0,
+          dailyRevenueText: formatMoney(0),
+        }
+    const storeIds = temu.stores.map((store) => store.id)
     rows.push({
       id: 'temu',
       name: 'Temu',
@@ -43,9 +51,11 @@ export function buildPlatformSalesRows(payload) {
     })
   }
 
-  if (aliexpress?.orders?.length) {
-    const summary = summarizeAliExpressOrders(aliexpress.orders)
-    const storeIds = (aliexpress.stores || []).map((store) => store.id)
+  if (aliexpress?.stores?.length) {
+    const summary = aliexpress.orders?.length
+      ? summarizeAliExpressOrders(aliexpress.orders)
+      : { totalAmount: 0, total: 0, pending: 0, totalAmountText: formatMoney(0) }
+    const storeIds = aliexpress.stores.map((store) => store.id)
     const pending = summary.pending
     rows.push({
       id: 'aliexpress',
@@ -59,10 +69,10 @@ export function buildPlatformSalesRows(payload) {
     })
   }
 
-  if (walmart?.orders?.length || walmart?.stores?.length) {
+  if (walmart?.stores?.length) {
     const orderSummary = summarizeWalmartOrders(walmart.orders || [])
     const issueSummary = summarizeWalmartListings(walmart.issues || [])
-    const storeIds = (walmart.stores || []).map((store) => store.id)
+    const storeIds = walmart.stores.map((store) => store.id)
     rows.push({
       id: 'walmart',
       name: 'Walmart',
@@ -80,7 +90,7 @@ export function buildPlatformSalesRows(payload) {
     { key: 'douyin', name: '抖音', data: douyin },
     { key: 'channels', name: '视频号', data: channels },
   ]) {
-    if (!item.data?.orders?.length && !item.data?.stores?.length) continue
+    if (!item.data?.stores?.length) continue
     const orderSummary = summarizeDomesticOrders(item.data.orders || [])
     const issueSummary = summarizeDomesticIssues(item.data.issues || [])
     const storeIds = (item.data.stores || []).map((store) => store.id)
@@ -112,10 +122,12 @@ export function buildPlatformSalesRows(payload) {
     })
   }
 
-  if (alibaba1688?.purchaseOrders?.length || alibaba1688?.stores?.length) {
-    const summary = summarize1688PurchaseOrders(alibaba1688.purchaseOrders || [])
+  if (alibaba1688?.stores?.length) {
+    const summary = alibaba1688.purchaseOrders?.length
+      ? summarize1688PurchaseOrders(alibaba1688.purchaseOrders)
+      : { totalAmount: 0, total: 0, pending: 0, totalAmountText: formatMoney(0) }
     const alertCount = (alibaba1688.supplierAlerts || []).filter((a) => !a.resolved).length
-    const storeIds = (alibaba1688.stores || []).map((store) => store.id)
+    const storeIds = alibaba1688.stores.map((store) => store.id)
     rows.push({
       id: '1688',
       name: '1688',
@@ -128,7 +140,7 @@ export function buildPlatformSalesRows(payload) {
     })
   }
 
-  if (dtc?.orders?.length || dtc?.stores?.length) {
+  if (dtc?.stores?.length) {
     const orders = dtc.orders || []
     const revenue = orders.reduce((sum, order) => sum + (order.amount || 0), 0)
     const pending = orders.filter((order) => order.status === 'pending').length

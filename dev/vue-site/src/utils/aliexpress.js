@@ -15,7 +15,7 @@ export function summarizeAliExpressOrders(orders = []) {
     jitPending,
     warehousePending,
     totalAmount,
-    totalAmountText: `$${formatMoneyDecimal(totalAmount)}`,
+    totalAmountText: totalAmount > 0 ? `$${formatMoneyDecimal(totalAmount)}` : '—',
   }
 }
 

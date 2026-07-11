@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { formatMoneyDecimal, formatPercent } from '@/utils/format'
 import AssigneeTableColumn from '@/components/common/AssigneeTableColumn.vue'
+import TableQueryBar from '@/components/common/TableQueryBar.vue'
+import { useFuzzySearchPagination } from '@/composables/useFuzzySearchPagination'
 
 const props = defineProps({
   products: { type: Array, required: true },
@@ -10,10 +12,14 @@ const props = defineProps({
 
 const filterLoss = ref('all')
 
-const filtered = computed(() => {
+const categoryFiltered = computed(() => {
   if (filterLoss.value === 'loss') return props.products.filter((p) => p.isLoss)
   if (filterLoss.value === 'profit') return props.products.filter((p) => !p.isLoss)
   return props.products
+})
+
+const { keyword, page, pageSize, total, paged } = useFuzzySearchPagination(categoryFiltered, {
+  fields: ['sku', 'name', 'storeName', 'spuId', 'skcId'],
 })
 </script>
 
@@ -31,7 +37,16 @@ const filtered = computed(() => {
         </el-space>
       </template>
 
-      <el-table :data="filtered" stripe>
+      <TableQueryBar
+        v-model:keyword="keyword"
+        v-model:page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+      />
+
+      <el-empty v-if="!total" description="暂无匹配 SKU" />
+
+      <el-table v-else :data="paged" stripe>
         <el-table-column v-if="showStoreColumn" prop="storeName" label="所属店铺" width="130" show-overflow-tooltip />
         <AssigneeTableColumn />
         <el-table-column prop="sku" label="SKU" width="110" fixed />

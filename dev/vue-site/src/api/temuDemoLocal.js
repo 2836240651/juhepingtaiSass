@@ -21,20 +21,16 @@ export function fetchLocalTemuStores(auth) {
   return scopeStores(stores, auth)
 }
 
-export function loadLocalTemuOperationalData({ shopId } = {}) {
-  const raw = filterRawByShop(TEMU_PRODUCTS_RAW, shopId)
-  const products = enrichAllProducts(raw)
-  const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
-
+export function loadLocalTemuOperationalData() {
   return {
-    products,
+    products: [],
     meta: {
-      source: 'demo',
-      reportTime: now,
-      salesCount: products.length,
-      loseCount: products.filter((item) => item.isLoss).length,
-      restockCount: products.filter((item) => item.restock?.urgency !== 'normal').length,
-      overloadCount: products.filter((item) => item.isHot).length,
+      source: 'empty',
+      reportTime: '',
+      salesCount: 0,
+      loseCount: 0,
+      restockCount: 0,
+      overloadCount: 0,
     },
   }
 }

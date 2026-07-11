@@ -1,3 +1,4 @@
+﻿import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   buildDemoSnapshotsForCompetitor,
   DEMO_COMPETITOR_IDS,
@@ -7,24 +8,19 @@ import { localDateKey } from '@/utils/date'
 const STORAGE_KEY = 'crosshub_temu_competitor_snapshots'
 const MAX_DAYS = 30
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, []) || []
 }
 
-function saveAll(snapshots) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshots))
+function saveAll(data, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, data)
 }
 
 function todayKey() {
   return localDateKey()
 }
 
-/** 批量替换某竞店的全部快照 */
+/** 鎵归噺鏇挎崲鏌愮珵搴楃殑鍏ㄩ儴蹇収 */
 export function replaceCompetitorSnapshots(competitorId, snapshots) {
   const others = loadAll().filter((item) => item.competitorId !== competitorId)
   const merged = [
@@ -37,7 +33,7 @@ export function replaceCompetitorSnapshots(competitorId, snapshots) {
   saveAll(merged)
 }
 
-/** 为单个竞店重建 Demo 快照（绑定到该竞店 id） */
+/** 涓哄崟涓珵搴楅噸寤?Demo 蹇収锛堢粦瀹氬埌璇ョ珵搴?id锛?*/
 export function resetCompetitorSnapshots(competitor) {
   const snapshots = buildDemoSnapshotsForCompetitor(competitor).map((item) => ({
     ...item,
@@ -47,7 +43,7 @@ export function resetCompetitorSnapshots(competitor) {
   return snapshots
 }
 
-/** 确保所有 Demo 竞店 id 的快照存在 */
+/** 纭繚鎵€鏈?Demo 绔炲簵 id 鐨勫揩鐓у瓨鍦?*/
 export function ensureDemoSnapshots() {
   for (const competitorId of DEMO_COMPETITOR_IDS) {
     if (getLatestSnapshot(competitorId)) continue
@@ -56,7 +52,7 @@ export function ensureDemoSnapshots() {
   }
 }
 
-/** @deprecated 使用 resetCompetitorSnapshots */
+/** @deprecated 浣跨敤 resetCompetitorSnapshots */
 export function resetDemoSnapshots() {
   for (const competitorId of DEMO_COMPETITOR_IDS) {
     resetCompetitorSnapshots({ id: competitorId, url: '' })
@@ -97,3 +93,4 @@ export function canCrawlToday(competitorId) {
 }
 
 export { todayKey }
+

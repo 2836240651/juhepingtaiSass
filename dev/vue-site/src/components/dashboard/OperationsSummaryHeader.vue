@@ -16,9 +16,14 @@ const auth = useAuthStore()
 
 const taskStats = computed(() => calcTaskStats(props.tasks))
 
-const totalStores = computed(() =>
-  props.platformSales.reduce((sum, row) => sum + (row.storeCount || 0), 0),
-)
+const totalStores = computed(() => {
+  const fromSales = props.platformSales.reduce((sum, row) => sum + (row.storeCount || 0), 0)
+  if (fromSales > 0) return fromSales
+  return (props.overview?.platforms || []).reduce(
+    (sum, platform) => sum + (platform.storeSummaries?.length || 0),
+    0,
+  )
+})
 
 const summaryItems = computed(() => [
   {

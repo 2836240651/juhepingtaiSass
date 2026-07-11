@@ -138,7 +138,7 @@ export function buildDomesticPlatformSection(config, payload, storeNameMap, assi
   return {
     id,
     name,
-    bound: orders.length > 0 || issues.length > 0,
+    bound: (stores?.length || 0) > 0,
     issueCount: pendingOrders.length + openIssues.length,
     storeSummaries,
     storeGroups,

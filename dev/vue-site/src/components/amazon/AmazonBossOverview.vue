@@ -1,12 +1,13 @@
 <script setup>
 import { computed } from 'vue'
-import { summarizeTopProducts, summarizeOutboundOrders, acosMeta } from '@/utils/amazonBoss'
+import { summarizeTopProducts, summarizeOutboundOrders, acosMeta, summarizeAccountSnapshot, formatAmazonMoney } from '@/utils/amazonBoss'
 import { resolveStoreAssignee } from '@/utils/storeAssignment'
 import AssigneeTag from '@/components/common/AssigneeTag.vue'
 
 const props = defineProps({
   products: { type: Array, default: () => [] },
   outboundOrders: { type: Array, default: () => [] },
+  accountMetrics: { type: Array, default: () => [] },
   stores: { type: Array, default: () => [] },
   assigneeMap: { type: Object, default: () => ({}) },
   showStoreList: { type: Boolean, default: true },
@@ -16,20 +17,41 @@ const emit = defineEmits(['navigate'])
 
 const productSummary = computed(() => summarizeTopProducts(props.products, 20))
 const outboundSummary = computed(() => summarizeOutboundOrders(props.outboundOrders))
+const accountSnapshot = computed(() => summarizeAccountSnapshot(props.accountMetrics))
 
 const avgAcosMeta = computed(() => acosMeta(productSummary.value.avgAcos))
 
-const keyMetrics = computed(() => [
+const keyMetrics = computed(() => {
+  const hasValidProducts = productSummary.value.top.length > 0
+  const salesFromSnapshot = accountSnapshot.value.salesToday
+  const salesFromProducts = productSummary.value.totalRevenueText
+  const salesValue = salesFromSnapshot !== '—'
+    ? salesFromSnapshot
+    : (hasValidProducts ? salesFromProducts : '—')
+  return [
   {
-    label: 'TOP20 销售额',
-    value: productSummary.value.totalRevenueText,
-    hint: `7 日 · ${productSummary.value.top.length} SKU`,
+    label: '今日销售额',
+    value: salesValue,
+    hint: salesFromSnapshot !== '—'
+      ? '卖家后台全局快照'
+      : (hasValidProducts ? `TOP20 合计 · ${productSummary.value.top.length} SKU` : '请先同步 Business Report'),
   },
   {
     label: '平均 ACOS',
-    value: `${productSummary.value.avgAcos}%`,
-    hint: `广告花费 ${productSummary.value.totalAdSpendText}`,
+    value: accountSnapshot.value.adAcosSnapshot !== '—'
+      ? accountSnapshot.value.adAcosSnapshot
+      : (productSummary.value.avgAcos ? `${productSummary.value.avgAcos}%` : '—'),
+    hint: productSummary.value.hasAdData
+      ? `广告花费 ${productSummary.value.totalAdSpendText}`
+      : accountSnapshot.value.adSpendToday !== '—'
+        ? `广告花费 ${accountSnapshot.value.adSpendToday}`
+        : '点击「Business Report 刷新」同步广告数据',
     type: avgAcosMeta.value.type,
+  },
+  {
+    label: '广告花费',
+    value: accountSnapshot.value.adSpendToday || productSummary.value.totalAdSpendText,
+    hint: accountSnapshot.value.adSpendToday ? '今日 / 广告后台' : 'SKU 维度汇总',
   },
   {
     label: 'ACOS 偏高',
@@ -45,7 +67,8 @@ const keyMetrics = computed(() => [
     hint: `FBM ${outboundSummary.value.fbmPending} · FBA ${outboundSummary.value.fbaPending}`,
     type: outboundSummary.value.actionRequired ? 'warning' : 'success',
   },
-])
+]
+})
 
 const alertItems = computed(() => [
   {
@@ -83,7 +106,7 @@ const highAcosProducts = computed(() =>
 
 <template>
   <div class="boss-overview">
-    <div class="metrics-bar metrics-bar--4">
+    <div class="metrics-bar amazon-metrics-bar">
       <div v-for="item in keyMetrics" :key="item.label" class="metric-item">
         <div class="metric-value" :class="item.type ? `is-${item.type}` : ''">
           {{ item.value }}
@@ -166,6 +189,21 @@ const highAcosProducts = computed(() =>
 .boss-overview {
   display: grid;
   gap: 16px;
+}
+
+.amazon-metrics-bar {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.amazon-metrics-bar .metric-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+@media (max-width: 960px) {
+  .amazon-metrics-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .acos-alert-card {

@@ -1,3 +1,4 @@
+import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import {
   ALIEXPRESS_ORDER_COUNTRIES,
   ALIEXPRESS_ORDERS_SEED,
@@ -16,17 +17,14 @@ function nowText() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19)
 }
 
-function loadOrdersState() {
-  try {
-    const raw = localStorage.getItem(ORDERS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { date: '', syncedAt: '', items: [] }
-  } catch {
-    return { date: '', syncedAt: '', items: [] }
-  }
+const EMPTY_ORDERS = { date: '', syncedAt: '', items: [] }
+
+function loadOrdersState(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, ORDERS_STORAGE_KEY, EMPTY_ORDERS) || { ...EMPTY_ORDERS }
 }
 
-function saveOrdersState(state) {
-  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(state))
+function saveOrdersState(state, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, ORDERS_STORAGE_KEY, state)
 }
 
 function hashStoreId(id) {

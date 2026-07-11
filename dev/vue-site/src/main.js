@@ -19,13 +19,15 @@ import { clearAccessToken } from './api/request'
 if (!isTemuBackendEnabled()) {
   clearAccessToken()
   localStorage.setItem('backend_linked', '0')
+  ensureDefaultUser()
+  ensureDemoStores()
+  ensureDemoEmployees()
+  ensureDemoWarehouseStaff()
+  ensureDemoCompetitors()
+} else if (localStorage.getItem('crosshub_logged_in') === '1' && !localStorage.getItem('accessToken')) {
+  localStorage.setItem('crosshub_logged_in', '0')
+  localStorage.setItem('backend_linked', '0')
 }
-
-ensureDefaultUser()
-ensureDemoStores()
-ensureDemoEmployees()
-ensureDemoWarehouseStaff()
-ensureDemoCompetitors()
 
 const app = createApp(App)
 

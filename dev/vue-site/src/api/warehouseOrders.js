@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/stores/auth'
-import { isTemuBackendEnabled } from './config'
-import { getAccessToken } from './request'
+import { hasBackendSession } from './backendSession'
 import {
   cancelBackendWarehouseOrder,
   createBackendWarehouseOrder,
@@ -24,8 +23,7 @@ import {
 } from './warehouseOrdersLocal'
 
 export function canUseWarehouseBackend(auth) {
-  if (!isTemuBackendEnabled()) return false
-  return Boolean(getAccessToken() && auth?.backendLinked)
+  return hasBackendSession(auth)
 }
 
 function resolveSubmitter(auth) {
@@ -89,20 +87,19 @@ export async function fetchWarehouseOrders(auth, filters = {}) {
   if (canUseWarehouseBackend(auth)) {
     const data = await fetchBackendWarehouseOrders()
     let orders = data?.orders || []
-    const localQuery = { ...filters, ...employeeFilter }
-    if (warehouseScope) localQuery.warehouseIds = warehouseScope
-    const localPlatformOrders = fetchLocalWarehouseOrders(localQuery)
-      .filter((item) => item.fromPlatformOrder)
-    const knownIds = new Set(orders.map((item) => item.id))
-    orders = [
-      ...orders,
-      ...localPlatformOrders.filter((item) => !knownIds.has(item.id)),
-    ]
+    if (warehouseScope?.length) {
+      const allowed = new Set(warehouseScope)
+      orders = orders.filter((item) => allowed.has(item.warehouseId))
+    }
+    if (auth.isEmployee) {
+      const ownerId = String(auth.backendUserId || auth.employee?.id || '')
+      orders = orders.filter((item) => String(item.submittedById) === ownerId)
+    }
     if (filters.status) {
       orders = orders.filter((item) => item.status === filters.status)
     }
     orders.sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)))
-    return { data: orders, stats: warehouseOrderStats(orders) }
+    return { data: orders, stats: data?.stats || warehouseOrderStats(orders) }
   }
 
   const query = { ...filters, ...employeeFilter }
@@ -113,12 +110,7 @@ export async function fetchWarehouseOrders(auth, filters = {}) {
 
 export async function fetchWarehouseOrder(id, auth) {
   if (canUseWarehouseBackend(auth)) {
-    try {
-      const order = await fetchBackendWarehouseOrder(id)
-      if (order) return order
-    } catch {
-      /* 平台推送的出库单仅存于 localStorage */
-    }
+    return fetchBackendWarehouseOrder(id)
   }
   return fetchLocalWarehouseOrderById(id)
 }

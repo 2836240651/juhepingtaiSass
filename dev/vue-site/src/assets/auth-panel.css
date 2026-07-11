@@ -68,7 +68,7 @@
 
 .role-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   margin-bottom: 24px;
   padding: 3px;
@@ -81,16 +81,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 38px;
+  gap: 4px;
+  min-height: 38px;
+  padding: 6px 4px;
   border: none;
   border-radius: var(--ch-radius-xs);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--ch-text-secondary);
   background: transparent;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.role-tab .el-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.role-tab__text {
+  line-height: 1.2;
+  text-align: center;
 }
 
 .role-tab.is-active {
@@ -110,69 +121,39 @@
   margin-bottom: 20px;
 }
 
-.demo-section {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--ch-border);
-}
-
-.demo-section__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.demo-section__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ch-text-secondary);
-}
-
-.demo-section__hint {
-  font-size: 12px;
-  color: var(--ch-text-muted);
-}
-
-.demo-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.demo-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 10px 12px;
-  border: 1px solid var(--ch-border);
-  border-radius: var(--ch-radius-sm);
-  text-align: left;
-  background: var(--ch-surface);
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.demo-chip:hover {
-  border-color: var(--ch-primary-muted);
-  background: var(--ch-primary-soft);
-}
-
-.demo-chip strong {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ch-text);
-}
-
-.demo-chip span {
-  font-size: 12px;
-  color: var(--ch-text-muted);
-}
-
 @media (max-width: 640px) {
-  .demo-grid,
+  .auth-head h2 {
+    font-size: 20px;
+  }
+
+  .auth-head__sub {
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+
+  .role-tabs {
+    margin-bottom: 20px;
+  }
+
+  .role-tab {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 52px;
+    font-size: 11px;
+  }
+
+  .role-tab .el-icon {
+    font-size: 18px;
+  }
+
   .password-row {
     grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .role-tab__text {
+    font-size: 10px;
   }
 }

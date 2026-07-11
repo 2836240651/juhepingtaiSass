@@ -1,0 +1,97 @@
+package com.crosshub.aliexpress.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "aliexpress_crawl_job")
+public class AliExpressCrawlJob {
+    @Id
+    private String id;
+
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "triggered_by", nullable = false)
+    private Long triggeredBy;
+
+    @Column(nullable = false)
+    private String status;
+
+    @Column(nullable = false)
+    private String mode = "live";
+
+    @Column(nullable = false)
+    private String scope = "all";
+
+    @Column(name = "report_time")
+    private String reportTime;
+
+    @Column(name = "shops_count")
+    private Integer shopsCount;
+
+    @Column(name = "rows_count")
+    private Integer rowsCount;
+
+    @Column(name = "orders_count")
+    private Integer ordersCount;
+
+    @Column(name = "violations_count")
+    private Integer violationsCount;
+
+    @Column(name = "products_count")
+    private Integer productsCount;
+
+    @Column(name = "error_message")
+    private String errorMessage;
+
+    @Column(name = "error_code")
+    private String errorCode;
+
+    @Column(name = "started_at")
+    private String startedAt;
+
+    @Column(name = "finished_at")
+    private String finishedAt;
+
+    @Column(name = "created_at", nullable = false)
+    private String createdAt;
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+    public Long getTriggeredBy() { return triggeredBy; }
+    public void setTriggeredBy(Long triggeredBy) { this.triggeredBy = triggeredBy; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getMode() { return mode; }
+    public void setMode(String mode) { this.mode = mode == null || mode.isBlank() ? "live" : mode; }
+    public String getScope() { return scope; }
+    public void setScope(String scope) { this.scope = scope == null || scope.isBlank() ? "all" : scope; }
+    public String getReportTime() { return reportTime; }
+    public void setReportTime(String reportTime) { this.reportTime = reportTime; }
+    public Integer getShopsCount() { return shopsCount; }
+    public void setShopsCount(Integer shopsCount) { this.shopsCount = shopsCount; }
+    public Integer getRowsCount() { return rowsCount; }
+    public void setRowsCount(Integer rowsCount) { this.rowsCount = rowsCount; }
+    public Integer getOrdersCount() { return ordersCount; }
+    public void setOrdersCount(Integer ordersCount) { this.ordersCount = ordersCount; }
+    public Integer getViolationsCount() { return violationsCount; }
+    public void setViolationsCount(Integer violationsCount) { this.violationsCount = violationsCount; }
+    public Integer getProductsCount() { return productsCount; }
+    public void setProductsCount(Integer productsCount) { this.productsCount = productsCount; }
+    public String getErrorMessage() { return errorMessage; }
+    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public String getErrorCode() { return errorCode; }
+    public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
+    public String getStartedAt() { return startedAt; }
+    public void setStartedAt(String startedAt) { this.startedAt = startedAt; }
+    public String getFinishedAt() { return finishedAt; }
+    public void setFinishedAt(String finishedAt) { this.finishedAt = finishedAt; }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+}
+

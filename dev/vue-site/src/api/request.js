@@ -38,9 +38,14 @@ function clearSession() {
   }
 }
 
+import { getAppErrorMessage, formatUserMessage } from '@/utils/appErrorCode'
+
 function pickMessage(data) {
   if (!data || typeof data !== 'object') return ''
-  return String(data.msg || data.message || '').trim()
+  const code = String(data.error_code || '').trim()
+  const msg = String(data.msg || data.message || '').trim()
+  if (code) return getAppErrorMessage(code, msg)
+  return msg
 }
 
 service.interceptors.request.use((config) => {
@@ -59,15 +64,24 @@ service.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status
-    let msg = pickMessage(error.response?.data) || error.message || '请求失败'
-    if (status === 502 || status === 503) {
-      msg = '后端服务未启动或不可用，请启动 Java API（mvn -f backend/java/pom.xml spring-boot:run）'
+    const errorCode = String(error.response?.data?.error_code || '').trim()
+    let msg = pickMessage(error.response?.data) || formatUserMessage(error.message, '请求失败')
+    const backendDown =
+      !error.response
+      || status === 502
+      || status === 503
+      || /ECONNREFUSED|Network Error|socket hang up/i.test(String(error.message || ''))
+    if (backendDown && !errorCode) {
+      msg = '后端服务未启动或不可用，请先启动 Java API（scripts\\restart-java-api.ps1）'
     }
     if (status === 401 && router.currentRoute.value?.path !== '/login') {
       clearSession()
       router.replace('/login')
     }
-    return Promise.reject(new Error(msg))
+    const wrapped = new Error(msg)
+    if (errorCode) wrapped.errorCode = errorCode
+    if (error.response?.data?.data) wrapped.data = error.response.data.data
+    return Promise.reject(wrapped)
   },
 )
 

@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+ENV CROSSHUB_DB_PATH=/data/crosshub.db
+ENV CROSSHUB_MONITOR_EVIDENCE_DIR=/evidence
+ENV CROSSHUB_SNAPSHOT_PROVIDER_MODE=ctf_page_card
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+RUN mkdir -p /data /evidence /reports
+
+CMD ["python", "monitor_worker.py", "--loop", "--interval-seconds", "30", "--worker-id", "crosshub-python-worker", "--report-root", "/reports"]

@@ -1,4 +1,5 @@
 import { TEMU_RESTOCK_STATUS_LABELS } from '@/constants/temuOps'
+import { resolveTemuRestockStatus } from '@/api/temuRestock'
 import { DTC_ORDER_STATUSES } from '@/constants/dtcOrders'
 import { PURCHASE_ORDER_STATUSES, SUPPLIER_ALERT_TYPES } from '@/constants/alibaba1688'
 import { buildDomesticPlatformSection } from '@/utils/domesticPlatform'
@@ -36,16 +37,16 @@ function mapStoreSummaries(stores, assigneeMap) {
   }))
 }
 
-function buildTemuSection({ products, restockStatus, stores }, storeNameMap, assigneeMap) {
+function buildTemuSection({ products = [], restockStatus, stores }, storeNameMap, assigneeMap) {
   const restockItems = products
     .filter(
       (p) =>
         p.restock.urgency === 'critical' ||
         p.restock.urgency === 'warning' ||
-        restockStatus[p.sku],
+        resolveTemuRestockStatus(restockStatus, p),
     )
     .map((p) => {
-      const tracked = restockStatus[p.sku]
+      const tracked = resolveTemuRestockStatus(restockStatus, p)
       const status = tracked?.status || 'pending'
       const meta = TEMU_RESTOCK_STATUS_LABELS[status] || TEMU_RESTOCK_STATUS_LABELS.pending
       return attachAssignee(
@@ -96,7 +97,6 @@ function buildTemuSection({ products, restockStatus, stores }, storeNameMap, ass
       ),
     )
 
-  const pendingRestock = restockItems.filter((item) => !item.isDone).length
   const storeSummaries = mapStoreSummaries(stores, assigneeMap)
 
   const storeGroups = storeSummaries.map((summary) => {
@@ -110,10 +110,12 @@ function buildTemuSection({ products, restockStatus, stores }, storeNameMap, ass
     }
   })
 
+  const pendingRestock = restockItems.filter((item) => !item.isDone).length
+
   return {
     id: 'temu',
     name: 'Temu',
-    bound: products.length > 0,
+    bound: (stores?.length || 0) > 0,
     issueCount: pendingRestock + lossItems.length,
     storeSummaries,
     storeGroups,
@@ -236,7 +238,7 @@ function buildAliExpressSection({ orders, violations, stores }, storeNameMap, as
   return {
     id: 'aliexpress',
     name: 'AliExpress',
-    bound: orders.length > 0 || violations.length > 0,
+    bound: (stores?.length || 0) > 0,
     issueCount: jitUnshipped.length + warehousePending.length + pendingViolations,
     storeSummaries,
     storeGroups,
@@ -355,7 +357,7 @@ function buildWalmartSection({ orders, issues, stores }, storeNameMap, assigneeM
   return {
     id: 'walmart',
     name: 'Walmart',
-    bound: orders.length > 0 || issues.length > 0,
+    bound: (stores?.length || 0) > 0,
     issueCount: wfsPending.length + sellerPending.length + openIssues.length,
     storeSummaries,
     storeGroups,
@@ -612,7 +614,7 @@ function buildDtcSection({ orders, stores }, storeNameMap, assigneeMap) {
   return {
     id: 'dtc',
     name: '独立站',
-    bound: orders.length > 0,
+    bound: (stores?.length || 0) > 0,
     issueCount: pendingShip.length,
     storeSummaries,
     storeGroups,
@@ -702,7 +704,7 @@ function build1688Section({ purchaseOrders, supplierAlerts, stores }, storeNameM
   return {
     id: '1688',
     name: '1688',
-    bound: orders.length > 0 || stores.length > 0,
+    bound: (stores?.length || 0) > 0,
     issueCount: pendingPayment.length + pendingShipment.length + alerts.length,
     storeSummaries,
     storeGroups,

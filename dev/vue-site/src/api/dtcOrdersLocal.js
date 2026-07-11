@@ -1,3 +1,4 @@
+﻿import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import { DTC_ORDERS_SEED } from '@/constants/dtcOrders'
 
 const STORAGE_KEY = 'crosshub_dtc_orders'
@@ -7,16 +8,13 @@ function todayKey() {
 }
 
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { date: '', items: [] }
-  } catch {
-    return { date: '', items: [] }
-  }
+  const tenantId = resolveTenantId()
+  return loadScoped(tenantId, STORAGE_KEY, { date: '', items: [] })
+    || { date: '', items: [] }
 }
 
 function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  saveScoped(resolveTenantId(), STORAGE_KEY, state)
 }
 
 function normalizeOrders(date) {
@@ -51,3 +49,4 @@ export function loadDtcTodayOrders(stores = []) {
 export function ensureDtcOrdersDemo(stores = []) {
   loadDtcTodayOrders(stores)
 }
+

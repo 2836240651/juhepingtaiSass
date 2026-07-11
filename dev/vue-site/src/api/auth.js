@@ -1,5 +1,5 @@
 import { isTemuBackendEnabled } from './config'
-import { backendLogin, clearAccessToken } from './request'
+import { backendLogin, clearAccessToken, service } from './request'
 import {
   ensureDefaultUser,
   loginLocalBoss,
@@ -24,17 +24,36 @@ function mapBackendSession(backend) {
   }
 }
 
-async function loginViaBackend(account, password, portalRole) {
-  if (!isTemuBackendEnabled()) return null
+async function requireBackendLogin(account, password, portalRole) {
   try {
     return await backendLogin(account, password, portalRole)
-  } catch {
-    return null
+  } catch (err) {
+    const msg = err?.response?.data?.message
+      || err?.message
+      || '登录失败，请确认 Java API 已启动（:18080）'
+    throw new Error(msg)
   }
 }
 
-export function registerCompany(payload) {
-  const result = registerLocalUser(payload)
+export async function registerCompany(payload) {
+  const company = String(payload.company || '').trim()
+  const account = String(payload.account || '').trim()
+  const password = String(payload.password || '')
+
+  if (isTemuBackendEnabled()) {
+    const res = await service.post('/api/auth/register', {
+      company,
+      account,
+      password,
+    })
+    const data = res?.data ?? res
+    if (!data?.tenant_id) {
+      throw new Error('注册失败：未返回租户信息')
+    }
+    return { success: true, data }
+  }
+
+  const result = registerLocalUser({ company, account, password })
   if (result.error) throw new Error(result.error)
   return result
 }
@@ -43,8 +62,8 @@ export async function loginBoss(payload) {
   const account = String(payload.account || '').trim()
   const password = String(payload.password || '')
 
-  const backend = await loginViaBackend(account, password, 'boss')
-  if (backend) {
+  if (isTemuBackendEnabled()) {
+    const backend = await requireBackendLogin(account, password, 'boss')
     return {
       success: true,
       data: {
@@ -63,6 +82,7 @@ export async function loginBoss(payload) {
     data: {
       company: result.data.company,
       account: result.data.account,
+      tenant_id: result.data.tenant_id || null,
       backendLinked: false,
       menus: [],
       platforms: [],
@@ -73,8 +93,8 @@ export async function loginBoss(payload) {
 }
 
 export async function loginEmployee({ account, password }) {
-  const backend = await loginViaBackend(account, password, 'employee')
-  if (backend) {
+  if (isTemuBackendEnabled()) {
+    const backend = await requireBackendLogin(account, password, 'employee')
     return {
       success: true,
       data: {
@@ -128,8 +148,8 @@ export async function loginEmployee({ account, password }) {
 }
 
 export async function loginWarehouse({ account, password }) {
-  const backend = await loginViaBackend(account, password, 'warehouse')
-  if (backend) {
+  if (isTemuBackendEnabled()) {
+    const backend = await requireBackendLogin(account, password, 'warehouse')
     return {
       success: true,
       data: {

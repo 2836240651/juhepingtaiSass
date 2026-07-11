@@ -39,6 +39,34 @@ export default defineConfig(({ mode }) => {
         target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
         changeOrigin: true,
       },
+      '/api/platform-accounts': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
+      '/api/aliexpress': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
+      '/api/monitor': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
+      '/api/tasks': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
+      '/api/ops-feedback': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
+      '/api/amazon': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
+      '/api/agent': {
+        target: process.env.VITE_TEMU_API_PROXY || 'http://localhost:18080',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,

@@ -1,35 +1,87 @@
-import { fetchAliexpressDemoData } from './aliexpressDemoLocal'
 import {
-  fetchCachedAliExpressOrders,
+  canUseAliExpressBackend,
+  loadAliExpressModuleData,
+  fetchTodayAliExpressOrdersFromApi,
+  loadAliExpressViolationsFromApi,
+  crawlAliExpressViolationsFromApi,
+  confirmAliExpressViolationAppealFromApi,
+  fetchAliexpressDemoData,
   syncTodayAliExpressOrders,
-} from './aliexpressOrdersLocal'
-import {
-  confirmViolationAppeal,
-  fetchAliExpressViolations as loadStoredViolations,
+  fetchCachedAliExpressOrders,
+  loadStoredViolations,
   syncAliExpressViolations,
-} from './aliexpressViolationsLocal'
+  confirmViolationAppeal,
+} from './aliexpressApi'
 
-export function loadAliExpressOperationalData(stores) {
+export function loadAliExpressOperationalData(stores, auth) {
+  if (canUseAliExpressBackend(auth)) {
+    return loadAliExpressModuleData({ auth, stores })
+  }
   return fetchAliexpressDemoData(stores)
 }
 
 export async function fetchTodayAliExpressOrders(stores, options = {}) {
+  const { auth, refresh = false, storeId } = options
+  if (canUseAliExpressBackend(auth)) {
+    const data = await fetchTodayAliExpressOrdersFromApi({ storeId, refresh })
+    return {
+      data: {
+        orders: data.orders,
+        syncedAt: data.syncedAt,
+      },
+      message: refresh ? `已同步 ${data.orders.length} 笔今日订单` : '',
+    }
+  }
   const demoRes = fetchAliexpressDemoData(stores)
-  return syncTodayAliExpressOrders(stores, demoRes.data.products, options)
+  return syncTodayAliExpressOrders(stores, demoRes.data.products, { refresh })
 }
 
-export function loadCachedAliExpressOrders(stores) {
+export function loadCachedAliExpressOrders(stores, auth) {
+  if (canUseAliExpressBackend(auth)) {
+    return { data: { orders: [], syncedAt: '' } }
+  }
   return fetchCachedAliExpressOrders(stores)
 }
 
-export function loadAliExpressViolations(stores) {
-  return loadStoredViolations(stores)
+export function loadAliExpressViolations(stores, auth, options = {}) {
+  if (canUseAliExpressBackend(auth)) {
+    return loadAliExpressViolationsFromApi({ storeId: options.storeId })
+      .then((data) => ({
+        data: {
+          violations: data.violations,
+          syncedAt: data.syncedAt,
+        },
+      }))
+  }
+  return Promise.resolve({
+    data: loadStoredViolations(stores).data,
+  })
 }
 
 export async function crawlAliExpressViolations(stores, options = {}) {
-  return syncAliExpressViolations(stores, options)
+  const { auth, refresh = false } = options
+  if (canUseAliExpressBackend(auth)) {
+    if (!refresh) {
+      const cached = await loadAliExpressViolationsFromApi()
+      return {
+        data: cached,
+        message: '',
+      }
+    }
+    const data = await crawlAliExpressViolationsFromApi()
+    return {
+      data,
+      message: `已同步 ${data.violations.length} 条违规记录`,
+    }
+  }
+  return syncAliExpressViolations(stores, { refresh })
 }
 
-export function confirmAliExpressViolationAppeal(id, payload) {
+export function confirmAliExpressViolationAppeal(id, payload, auth) {
+  if (canUseAliExpressBackend(auth)) {
+    return confirmAliExpressViolationAppealFromApi(id, payload).then((res) => ({
+      data: res,
+    }))
+  }
   return confirmViolationAppeal(id, payload)
 }

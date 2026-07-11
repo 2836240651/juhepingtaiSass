@@ -1,18 +1,14 @@
+﻿import { loadScoped, resolveTenantId, saveScoped } from '@/utils/tenantStorage'
 import { TEMU_RESTOCK_STATUS_SEED } from '@/constants/temuOps'
 
 const STORAGE_KEY = 'crosshub_temu_restock_status'
 
-function loadAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { ...TEMU_RESTOCK_STATUS_SEED }
-  } catch {
-    return { ...TEMU_RESTOCK_STATUS_SEED }
-  }
+function loadAll(tenantId = resolveTenantId()) {
+  return loadScoped(tenantId, STORAGE_KEY, {}) || {}
 }
 
-function saveAll(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+function saveAll(data, tenantId = resolveTenantId()) {
+  saveScoped(tenantId, STORAGE_KEY, data)
 }
 
 export function getTemuRestockStatusMap() {
@@ -30,3 +26,4 @@ export function updateTemuRestockStatus(sku, payload) {
   saveAll(current)
   return current[sku]
 }
+
