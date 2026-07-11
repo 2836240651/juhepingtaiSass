@@ -17,8 +17,11 @@ npm-debug.log*
 .monitor-smoke.env
 租户账密.md
 AGENTS.md
-README.md
+# 仅提交根目录 README；其余本地文档 README 不入库
 **/README.md
+!/README.md
+backend/README.md
+dev/vue-site/README.md
 backend/python/crosshub.db
 backend/python/.aliexpress-browser-profile/
 backend/data/
